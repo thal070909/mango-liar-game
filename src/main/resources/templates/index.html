@@ -2,74 +2,105 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>실시간 라이어 게임</title>
+    <title>🥭 망고의 라이어 게임 🥭</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: #fff; text-align: center; padding-top: 50px; }
-        .container { max-width: 500px; margin: 0 auto; background: #2d2d2d; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h1 { color: #4CAF50; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; }
-        input[type="text"], input[type="password"] { width: 93%; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #3c3c3c; color: #fff; }
-        select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #3c3c3c; color: #fff; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #4CAF50; color: white; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        button:hover { background: #45a049; }
-        .divider { margin: 20px 0; border-top: 1px solid #444; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #FFF9E6; color: #333; text-align: center; padding-top: 50px; }
+        .container { max-width: 500px; margin: 0 auto; background: #FFFFFF; padding: 40px; border-radius: 30px; border: 4px solid #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
+        h1 { color: #FF8C00; margin-bottom: 5px; font-size: 32px; }
+        .subtitle { color: #D2691E; margin-bottom: 30px; font-weight: bold; }
+
+        .form-group { margin-bottom: 25px; text-align: left; }
+        label { display: block; margin-bottom: 10px; color: #FF8C00; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 15px; border-radius: 10px; border: 2px solid #FFD700; box-sizing: border-box; background: #FFFDF0; font-size: 16px; }
+
+        .emoji-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; justify-items: center; }
+        .emoji-label { font-size: 28px; cursor: pointer; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 15px; background: #FFFDF0; border: 2px solid #FFD700; transition: 0.2s; }
+        input[type="radio"] { display: none; }
+        input[type="radio"]:checked + .emoji-label { background: #FFD700; transform: scale(1.1); box-shadow: 0 0 10px #FFD700; }
+
+        /* 라운드 선택 버튼 */
+        .round-group { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px;}
+        .round-label { flex: 1; text-align: center; font-weight: bold; cursor: pointer; padding: 12px; border-radius: 10px; background: #FFFDF0; border: 2px solid #FFD700; transition: 0.2s; color: #553300;}
+        input[name="rounds"]:checked + .round-label { background: #FF8C00; color: white; border-color: #FF8C00;}
+
+        button { width: 100%; padding: 18px; border: none; border-radius: 15px; background: linear-gradient(45deg, #FFD700, #FF8C00); color: #553300; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        button:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3); }
+        .btn-join { background: #FFF; border: 2px solid #FF8C00; color: #FF8C00; }
+        .divider { margin: 30px 0; border-bottom: 2px dashed #FFD700; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>개발새발 라이어 게임 🎮</h1>
-    <p>링크만 있으면 누구나 참여할 수 있는 실시간 심리전</p>
+    <h1>🥭 망고의 라이어 게임 🥭</h1>
+    <div class="subtitle">속고 속이는 극한의 심리게임!</div>
 
-    <div class="divider"></div>
+    <div class="form-group">
+        <label>🐾 나만의 이모지 선택</label>
+        <div class="emoji-group">
+            <label><input type="radio" name="emoji" value="🥭" checked><div class="emoji-label">🥭</div></label>
+            <label><input type="radio" name="emoji" value="🍓"><div class="emoji-label">🍓</div></label>
+            <label><input type="radio" name="emoji" value="🍒"><div class="emoji-label">🍒</div></label>
+            <label><input type="radio" name="emoji" value="🍎"><div class="emoji-label">🍎</div></label>
+            <label><input type="radio" name="emoji" value="🍇"><div class="emoji-label">🍇</div></label>
+            <label><input type="radio" name="emoji" value="🥝"><div class="emoji-label">🥝</div></label>
+            <label><input type="radio" name="emoji" value="🍊"><div class="emoji-label">🍊</div></label>
+            <label><input type="radio" name="emoji" value="🍉"><div class="emoji-label">🍉</div></label>
+            <label><input type="radio" name="emoji" value="🍌"><div class="emoji-label">🍌</div></label>
+            <label><input type="radio" name="emoji" value="🥑"><div class="emoji-label">🥑</div></label>
+        </div>
 
-    <h2>새로운 방 만들기</h2>
-    <form action="/create-room" method="POST">
-        <div class="form-group">
-            <label>공개 여부</label>
-            <select id="roomType" name="roomType" onchange="togglePassword()">
-                <option value="PUBLIC">공개방</option>
-                <option value="PRIVATE">비공개방 (비밀번호 필요)</option>
-            </select>
+        <label>👑 닉네임</label>
+        <input type="text" id="myNickname" placeholder="닉네임을 입력하세요">
+    </div>
+
+    <!-- 라운드 설정 추가 -->
+    <div class="form-group">
+        <label>🎯 게임 라운드 설정 (방장용)</label>
+        <div class="round-group">
+            <label><input type="radio" name="rounds" value="3" checked><div class="round-label">3 라운드</div></label>
+            <label><input type="radio" name="rounds" value="5"><div class="round-label">5 라운드</div></label>
+            <label><input type="radio" name="rounds" value="10"><div class="round-label">10 라운드</div></label>
         </div>
-        <div class="form-group" id="passwordGroup" style="display: none;">
-            <label>비밀번호</label>
-            <input type="password" name="roomPassword" id="roomPassword" placeholder="비밀번호를 입력하세요">
-        </div>
-        <button type="submit">방 만들기 및 입장</button>
+    </div>
+
+    <form action="/create-room" method="POST" onsubmit="return saveInfo()">
+        <button type="submit">새로운 방 만들기</button>
     </form>
 
     <div class="divider"></div>
 
-    <h2>초대 링크로 참여하기</h2>
     <div class="form-group">
-        <label>방 코드 입력</label>
-        <input type="text" id="roomCode" placeholder="예: A1B2C3">
+        <label>방 코드</label>
+        <input type="text" id="roomCode" placeholder="초대 코드를 입력하세요">
     </div>
-    <button style="background: #2196F3;" onclick="joinRoom()">방 입장하기</button>
+    <button class="btn-join" onclick="joinRoom()">초대 코드로 방 입장하기</button>
 </div>
 
 <script>
-    // 비공개방 선택 시 비밀번호 창이 뜨게 하는 함수
-    function togglePassword() {
-        const roomType = document.getElementById('roomType').value;
-        const passwordGroup = document.getElementById('passwordGroup');
-        if (roomType === 'PRIVATE') {
-            passwordGroup.style.display = 'block';
-        } else {
-            passwordGroup.style.display = 'none';
-        }
-    }
-
-    function createRoom() {
-        alert('방 만들기 기능은 백엔드 연결 후 활성화됩니다!');
+    function saveInfo() {
+        var nickname = document.getElementById('myNickname').value.trim();
+        var emoji = document.querySelector('input[name="emoji"]:checked').value;
+        var rounds = document.querySelector('input[name="rounds"]:checked').value;
+        if(!nickname) { alert('닉네임을 입력해주세요!'); return false; }
+        sessionStorage.setItem('liarGameNickname', nickname);
+        sessionStorage.setItem('liarGameEmoji', emoji);
+        sessionStorage.setItem('liarGameRounds', rounds);
+        return true;
     }
 
     function joinRoom() {
-        alert('방 입장 기능은 백엔드 연결 후 활성화됩니다!');
+        var nickname = document.getElementById('myNickname').value.trim();
+        var roomCode = document.getElementById('roomCode').value.trim();
+        var emoji = document.querySelector('input[name="emoji"]:checked').value;
+        if(!nickname) { alert('닉네임을 입력해주세요!'); return; }
+        if(!roomCode) { alert('방 코드를 입력해주세요!'); return; }
+        sessionStorage.setItem('liarGameNickname', nickname);
+        sessionStorage.setItem('liarGameEmoji', emoji);
+        sessionStorage.setItem('liarGameRounds', "0"); // 참여자는 방장 룰을 따름
+        window.location.href = '/room/' + roomCode;
     }
 </script>
+
 </body>
 </html>
-

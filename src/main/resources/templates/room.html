@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>🥭 망고의 라이어 게임 🥭</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #FFF9E6; color: #333; text-align: center; padding-top: 30px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; background: #FFFFFF; padding: 30px; border-radius: 25px; border: 4px solid #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        h1 { color: #FF8C00; margin-bottom: 10px; font-size: 35px; text-shadow: 2px 2px 0px #FFF9E6; }
+        .room-code-box { font-size: 16px; font-weight: bold; background: #FFD700; color: #553300; padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+
+        #timerBoard { background: #FFF9E6; padding: 10px; border-radius: 10px; border: 2px dashed #FFD700; margin-bottom: 15px; font-size: 20px; font-weight: bold; color: #FF8C00; transition: 0.3s; }
+
+        .campfire-stage { position: relative; width: 100%; height: 350px; background: #FFFDF0; border-radius: 20px; margin-bottom: 20px; border: 2px dashed #FFD700; overflow: hidden; }
+        @keyframes flicker { 0% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ff6600, 0 0 40px #ff0000; } 50% { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 30px #ff9900, 0 0 50px #ff3300; } 100% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ff6600, 0 0 40px #ff0000; } }
+        .center-fire { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; animation: flicker 1.5s infinite alternate; cursor: default; z-index: 5; }
+
+        .player-avatar { position: absolute; transform: translate(-50%, -50%); background: #FFD700; padding: 8px 15px; border-radius: 20px; border: 2px solid #FF8C00; color: #553300; font-weight: bold; font-size: 16px; white-space: nowrap; box-shadow: 0 5px 10px rgba(255, 140, 0, 0.2); z-index: 10; transition: all 0.3s ease; }
+        .active-turn { background: #FF4500; color: #FFF; border: 3px solid #FFF; box-shadow: 0 0 20px #FF4500; transform: translate(-50%, -50%) scale(1.2); z-index: 20; }
+
+        .chat-wrapper { background: #FFFDF0; border-radius: 15px; border: 2px solid #FFD700; display: flex; flex-direction: column; height: 250px; margin-bottom: 20px; }
+        .section-title { font-size: 16px; color: #FF8C00; border-bottom: 1px solid #FFD700; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 13px 13px 0 0; }
+        #chatArea { flex: 1; padding: 15px; overflow-y: auto; text-align: left; }
+        .input-group { display: flex; padding: 10px; background: #FFD700; border-radius: 0 0 13px 13px; }
+        .input-group input { flex: 1; padding: 12px; border-radius: 5px; border: none; background: #FFF; font-size: 15px; margin-right: 10px; }
+        .input-group button { width: 80px; padding: 12px; border: none; border-radius: 5px; background: #FF8C00; color: white; font-weight: bold; cursor: pointer; }
+
+        .sys-msg { color: #D2691E; text-align: center; margin: 10px 0; font-weight: bold; }
+        .chat-msg { margin: 6px 0; }
+        .sender-name { color: #FF8C00; font-weight: bold; margin-right: 5px; }
+
+        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 15px; background: linear-gradient(45deg, #FFD700, #FF8C00); color: #553300; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3); transition: 0.3s; display: none; }
+        .pass-btn { background: linear-gradient(45deg, #32CD32, #228B22); color: white; }
+
+        /* 팝업 공통 스타일 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-box { background: white; padding: 40px; border-radius: 20px; text-align: center; color: #333; box-shadow: 0 0 30px #FFD700; min-width: 350px; }
+
+        /* 투표 현황판 스타일 */
+        .vote-board { margin: 20px 0; padding: 15px; background: #333; color: white; border-radius: 10px; text-align: left; max-height: 200px; overflow-y: auto; }
+        .vote-item { padding: 8px 0; border-bottom: 1px dashed #666; font-size: 16px; font-weight: bold; }
+        .vote-kill { color: #FF6347; }
+        .vote-save { color: #1E90FF; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🥭 망고의 라이어 게임 🥭</h1>
+    <div class="room-code-box">방: <span th:text="${roomId}"></span> | 🎯 <span id="roundDisplay">대기중</span> | 인원: <span id="playerCount">0</span>/10 | 나: <span id="myNameDisplay"></span></div>
+
+    <div id="timerBoard">⏳ 게임 대기 중...</div>
+
+    <div class="campfire-stage" id="campfireStage">
+        <div class="center-fire">🔥</div>
+    </div>
+
+    <div class="chat-wrapper">
+        <div class="section-title">💬 모닥불 채팅</div>
+        <div id="chatArea"></div>
+        <div class="input-group">
+            <input type="text" id="messageInput" onkeypress="if(event.keyCode==13) sendMessage()" placeholder="메시지를 입력하세요...">
+            <button onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 15px;">
+        <button class="action-btn" id="startBtn" onclick="startGame()" style="display: block;">게임 시작</button>
+        <button class="action-btn pass-btn" id="passBtn" onclick="passTurn()">⏭️ 내 설명 마침 (스킵)</button>
+    </div>
+</div>
+
+<!-- 1. 단어 확인 팝업 -->
+<div id="wordModal" class="modal">
+    <div class="modal-box">
+        <h2 id="modalContent" style="margin: 0; color: #FF8C00; font-size: 30px;"></h2>
+        <div style="margin-top: 15px; font-size: 20px; font-weight: bold; color: #555; background: #FFF9E6; padding: 10px; border-radius: 10px;">
+            📝 주제: <span id="gameCategory" style="color: #FF8C00;"></span>
+        </div>
+        <p style="font-size: 50px; font-weight: bold; margin: 30px 0;">[ <span id="gameWord" style="color:#e60000;"></span> ]</p>
+        <button onclick="closeModal('wordModal')" class="action-btn" style="display:block; width:100%;">확인</button>
+    </div>
+</div>
+
+<!-- 2. 1차 라이어 지목 투표 팝업 -->
+<div id="voteModal" class="modal">
+    <div class="modal-box" style="box-shadow: 0 0 30px #FF6347;">
+        <h2 style="margin-top: 0; color: #FF4500;">누가 라이어일까요?</h2>
+        <p style="color: #FF4500; font-weight: bold;" id="voteTimerDisplay">남은 시간: 30초</p>
+        <div id="voteRadioList" style="margin: 20px 0; text-align:left; max-height: 250px; overflow-y: auto;"></div>
+        <button onclick="submitVote()" class="action-btn" style="display:block; width:100%; background: #FF4500; color: white;">지목하기</button>
+    </div>
+</div>
+
+<!-- 3. 최후 변론 팝업 -->
+<div id="defenseModal" class="modal">
+    <div class="modal-box" style="box-shadow: 0 0 40px #FFD700;">
+        <h2 style="margin-top: 0; color: #FF8C00;">최후 변론 시간!</h2>
+        <h3 id="accusedNameDisplay" style="font-size:24px; color:#333;"></h3>
+        <p style="font-size: 18px; color: #666;">용의자는 채팅으로 결백을 증명하세요!</p>
+        <p style="color: #FF0000; font-weight: bold; font-size:24px;" id="defenseTimerDisplay">30초</p>
+        <button id="defenseSkipBtn" onclick="skipDefense()" class="action-btn pass-btn" style="display:none; width:100%; margin-top:20px;">⏭️ 반론 스킵하기</button>
+    </div>
+</div>
+
+<!-- 4. 전체 공개 찬반 투표 팝업 -->
+<div id="publicVoteModal" class="modal">
+    <div class="modal-box" style="box-shadow: 0 0 40px #1E90FF; min-width: 450px;">
+        <h2 style="margin-top: 0; color: #1E90FF;">처형 찬반 투표</h2>
+        <h3 style="font-size:20px; color:#333;">[ <span id="publicAccusedDisplay" style="color:#FF4500"></span> ] 님을 처형하시겠습니까?</h3>
+
+        <div style="display:flex; gap:10px; margin:20px 0;">
+            <button onclick="submitPublicVote('KILL')" class="action-btn" id="btnKill" style="display:block; background:#FF4500; color:white;">🔴 찬성 (죽인다)</button>
+            <button onclick="submitPublicVote('SAVE')" class="action-btn" id="btnSave" style="display:block; background:#1E90FF; color:white;">🔵 반대 (살린다)</button>
+        </div>
+
+        <h4 style="margin: 0; text-align:left; color:#1E90FF;">실시간 투표 현황</h4>
+        <div id="publicVoteBoard" class="vote-board">
+            <!-- 실시간 투표 결과가 여기에 표시됨 -->
+        </div>
+    </div>
+</div>
+
+<!-- 5. 결과 팝업 (라운드 종료 / 최종 종료) -->
+<div id="resultModal" class="modal">
+    <div class="modal-box">
+        <h2 style="margin: 0; color: #FF8C00; font-size: 35px;" id="resultTitle">게임 종료</h2>
+        <p id="resultContent" style="font-size: 20px; font-weight: bold; margin: 30px 0; white-space: pre-wrap; line-height: 1.5;"></p>
+        <button id="nextRoundBtn" onclick="closeModal('resultModal')" class="action-btn" style="display:none; width:100%;">확인</button>
+    </div>
+</div>
+
+<script>
+    var stompClient = null;
+    var roomId = '[[${roomId}]]';
+    var myId = Math.random().toString(36).substr(2, 9);
+    var myName = sessionStorage.getItem('liarGameNickname') || "무명_" + Math.floor(Math.random() * 100);
+    var myEmoji = sessionStorage.getItem('liarGameEmoji') || "🥭";
+    var initRounds = sessionStorage.getItem('liarGameRounds') || "3";
+    var myFullName = myEmoji + " " + myName;
+
+    var currentPlayers = [];
+    var countdownInterval;
+
+    document.getElementById('myNameDisplay').innerText = myFullName;
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function startLocalTimer(seconds, targetElementId, prefix, onExpireText) {
+        clearInterval(countdownInterval);
+        var left = seconds;
+        var el = document.getElementById(targetElementId);
+        if(el) el.innerText = prefix + left + "초";
+
+        countdownInterval = setInterval(function() {
+            left--;
+            if(left <= 0) {
+                clearInterval(countdownInterval);
+                if(el) el.innerText = onExpireText;
+            } else {
+                if(el) {
+                    el.innerText = prefix + left + "초";
+                    if(left <= 5) el.style.color = 'red';
+                }
+            }
+        }, 1000);
+    }
+
+    function connect() {
+        var socket = new SockJS('/ws-liar');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function () {
+            stompClient.subscribe('/topic/room/' + roomId, function (message) {
+                var data = JSON.parse(message.body);
+                var chatArea = document.getElementById('chatArea');
+
+                if (data.type === 'SYSTEM') {
+                    chatArea.innerHTML += "<div class='sys-msg'>" + data.content + "</div>";
+                } else if (data.type === 'CHAT') {
+                    chatArea.innerHTML += "<div class='chat-msg'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
+                } else if (data.type === 'PLAYER_LIST') {
+                    currentPlayers = data.playerList;
+                    document.getElementById('playerCount').innerText = currentPlayers.length;
+                    document.getElementById('roundDisplay').innerText = data.currentRound + "/" + data.totalRounds + " 라운드";
+
+                    var stage = document.getElementById('campfireStage');
+                    stage.innerHTML = '<div class="center-fire">🔥</div>';
+
+                    currentPlayers.forEach(function(player, index) {
+                        var angle = (index / currentPlayers.length) * (2 * Math.PI) - (Math.PI / 2);
+                        var x = 50 + 40 * Math.cos(angle);
+                        var y = 50 + 35 * Math.sin(angle);
+
+                        var playerDiv = document.createElement('div');
+                        playerDiv.className = 'player-avatar';
+                        playerDiv.id = 'avatar_' + player;
+                        playerDiv.style.left = x + '%';
+                        playerDiv.style.top = y + '%';
+                        playerDiv.innerText = player;
+                        stage.appendChild(playerDiv);
+                    });
+                } else if (data.type === 'GAME_STARTED') {
+                    document.getElementById('startBtn').style.display = 'none';
+                    document.getElementById('passBtn').style.display = 'none';
+                    document.getElementById('timerBoard').style.color = '#FF8C00';
+                    chatArea.innerHTML += "<div class='sys-msg' style='color:#FF4500'>" + data.content + "</div>";
+                    startLocalTimer(5, 'timerBoard', "단어 확인 시간: ", "게임 시작!");
+                } else if (data.type === 'TURN_START') {
+                    var avatars = document.getElementsByClassName('player-avatar');
+                    for(var i=0; i<avatars.length; i++) avatars[i].classList.remove('active-turn');
+
+                    var currentAvatar = document.getElementById('avatar_' + data.turnPlayerName);
+                    if(currentAvatar) currentAvatar.classList.add('active-turn');
+
+                    chatArea.innerHTML += "<div class='sys-msg' style='color:#228B22'>▶ " + data.content + "</div>";
+
+                    document.getElementById('timerBoard').style.color = '#FF8C00';
+                    startLocalTimer(30, 'timerBoard', "🗣️ ["+ data.turnPlayerName +"] 설명 남은 시간: ", "시간 초과! 턴 스킵");
+
+                    if(data.turnPlayerName === myFullName) document.getElementById('passBtn').style.display = 'block';
+                    else document.getElementById('passBtn').style.display = 'none';
+
+                } else if (data.type === 'VOTE_START') {
+                    document.getElementById('passBtn').style.display = 'none';
+                    chatArea.innerHTML += "<div class='sys-msg' style='color:#FF0000'>🚨 " + data.content + "</div>";
+
+                    var voteList = document.getElementById('voteRadioList');
+                    voteList.innerHTML = '';
+                    currentPlayers.forEach(function(p) {
+                        if(p !== myFullName) {
+                            voteList.innerHTML += `<label style="display:block; margin: 10px 0; font-size: 20px; cursor: pointer; padding: 10px; background: #FFF9E6; border-radius: 10px; border: 1px solid #FFD700;"><input type="radio" name="voteTarget" value="${p}"> ${p}</label>`;
+                        }
+                    });
+                    document.getElementById('voteModal').style.display = 'flex';
+                    startLocalTimer(30, 'timerBoard', "⚖️ 투표 시간: ", "투표 종료!");
+                    startLocalTimer(30, 'voteTimerDisplay', "남은 시간: ", "시간 초과!");
+
+                    // [신규] 반론 시작 처리
+                } else if (data.type === 'DEFENSE_START') {
+                    closeModal('voteModal');
+                    var accusedName = data.content;
+                    document.getElementById('accusedNameDisplay').innerText = "용의자: [" + accusedName + "]";
+                    document.getElementById('defenseModal').style.display = 'flex';
+
+                    startLocalTimer(30, 'timerBoard', "⏱️ 반론 진행 중: ", "반론 종료!");
+                    startLocalTimer(30, 'defenseTimerDisplay', "남은 시간: ", "시간 초과!");
+
+                    if(accusedName === myFullName) document.getElementById('defenseSkipBtn').style.display = 'block';
+                    else document.getElementById('defenseSkipBtn').style.display = 'none';
+
+                    // [신규] 찬반 공개 투표 시작
+                } else if (data.type === 'PUBLIC_VOTE_START') {
+                    closeModal('defenseModal');
+                    document.getElementById('publicAccusedDisplay').innerText = data.content;
+                    document.getElementById('publicVoteBoard').innerHTML = ''; // 게시판 초기화
+
+                    // 본인이 용의자면 투표 버튼 숨김 처리
+                    if(data.content === myFullName) {
+                        document.getElementById('btnKill').style.display = 'none';
+                        document.getElementById('btnSave').style.display = 'none';
+                        document.getElementById('publicVoteBoard').innerHTML = '<div class="vote-item">당신은 용의자이므로 투표할 수 없습니다.</div>';
+                    } else {
+                        document.getElementById('btnKill').style.display = 'block';
+                        document.getElementById('btnSave').style.display = 'block';
+                    }
+
+                    document.getElementById('publicVoteModal').style.display = 'flex';
+                    startLocalTimer(30, 'timerBoard', "⚖️ 찬반 투표 중: ", "투표 종료!");
+
+                    // [신규] 찬반 공개 투표 실시간 현황 수신
+                } else if (data.type === 'PUBLIC_VOTE_UPDATE') {
+                    var board = document.getElementById('publicVoteBoard');
+                    board.innerHTML = '';
+                    for (var key in data.publicVotes) {
+                        var voteVal = data.publicVotes[key];
+                        var styleClass = voteVal === 'KILL' ? 'vote-kill' : 'vote-save';
+                        var textStr = voteVal === 'KILL' ? '🔴 찬성 (처형)' : '🔵 반대 (생존)';
+                        board.innerHTML += '<div class="vote-item">' + key + ' ➔ <span class="' + styleClass + '">' + textStr + '</span></div>';
+                    }
+
+                    // [신규] 라운드 종료
+                } else if (data.type === 'ROUND_END') {
+                    clearInterval(countdownInterval);
+                    closeModal('publicVoteModal');
+                    document.getElementById('timerBoard').innerText = "⏳ 라운드 결과 발표";
+
+                    document.getElementById('resultTitle').innerText = "라운드 종료";
+                    document.getElementById('resultContent').innerText = data.content;
+                    document.getElementById('nextRoundBtn').style.display = 'block';
+                    document.getElementById('resultModal').style.display = 'flex';
+
+                    document.getElementById('startBtn').style.display = 'block';
+                    document.getElementById('startBtn').innerText = "다음 라운드 시작";
+                    document.getElementById('passBtn').style.display = 'none';
+
+                    // [신규] 최종 게임 완전 종료
+                } else if (data.type === 'GAME_OVER_ALL') {
+                    clearInterval(countdownInterval);
+                    closeModal('publicVoteModal');
+                    document.getElementById('timerBoard').innerText = "🏁 모든 게임 종료";
+
+                    document.getElementById('resultTitle').innerText = "🏆 최종 결과 발표 🏆";
+                    // 여기에 나중에 알려주실 스코어보드를 삽입하게 됩니다.
+                    document.getElementById('resultContent').innerText = data.content;
+                    document.getElementById('nextRoundBtn').style.display = 'block';
+                    document.getElementById('resultModal').style.display = 'flex';
+
+                    document.getElementById('startBtn').style.display = 'block';
+                    document.getElementById('startBtn').innerText = "새 게임 시작하기";
+                    document.getElementById('passBtn').style.display = 'none';
+                }
+                chatArea.scrollTop = chatArea.scrollHeight;
+            });
+
+            stompClient.subscribe('/topic/player/' + myId, function (message) {
+                var data = JSON.parse(message.body);
+                if (data.type === 'GAME_START') {
+                    document.getElementById('modalContent').innerText = data.content;
+                    document.getElementById('gameCategory').innerText = data.category;
+                    document.getElementById('gameWord').innerText = data.word;
+                    document.getElementById('wordModal').style.display = 'flex';
+                }
+            });
+            stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'totalRounds': initRounds, 'type': 'JOIN' }));
+        });
+    }
+
+    function sendMessage() {
+        var input = document.getElementById('messageInput');
+        if(input.value.trim() !== "") {
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': input.value, 'type': 'CHAT' }));
+            input.value = '';
+        }
+    }
+
+    function startGame() { stompClient.send("/app/game.start", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
+    function passTurn() {
+        document.getElementById('passBtn').style.display = 'none';
+        stompClient.send("/app/game.passTurn", {}, JSON.stringify({ 'roomId': roomId }));
+    }
+    function submitVote() {
+        var target = document.querySelector('input[name="voteTarget"]:checked');
+        if(!target) { alert("의심되는 사람을 지목해주세요!"); return; }
+        stompClient.send("/app/game.vote", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'content': target.value }));
+        closeModal('voteModal');
+        document.getElementById('timerBoard').innerText = "투표 완료. 결과 대기 중...";
+    }
+
+    // [신규] 반론 스킵
+    function skipDefense() {
+        document.getElementById('defenseSkipBtn').style.display = 'none';
+        stompClient.send("/app/game.skipDefense", {}, JSON.stringify({ 'roomId': roomId }));
+    }
+
+    // [신규] 찬반 공개 투표 발송
+    function submitPublicVote(voteValue) {
+        document.getElementById('btnKill').style.display = 'none';
+        document.getElementById('btnSave').style.display = 'none';
+        stompClient.send("/app/game.publicVote", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': voteValue }));
+    }
+
+    connect();
+</script>
+</body>
+</html>
