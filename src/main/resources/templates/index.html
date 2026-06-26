@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>실시간 라이어 게임</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: #fff; text-align: center; padding-top: 50px; }
+        .container { max-width: 500px; margin: 0 auto; background: #2d2d2d; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #4CAF50; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="password"] { width: 93%; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #3c3c3c; color: #fff; }
+        select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #3c3c3c; color: #fff; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #4CAF50; color: white; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #45a049; }
+        .divider { margin: 20px 0; border-top: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>개발새발 라이어 게임 🎮</h1>
+    <p>링크만 있으면 누구나 참여할 수 있는 실시간 심리전</p>
+
+    <div class="divider"></div>
+
+    <h2>새로운 방 만들기</h2>
+    <form action="/create-room" method="POST">
+        <div class="form-group">
+            <label>공개 여부</label>
+            <select id="roomType" name="roomType" onchange="togglePassword()">
+                <option value="PUBLIC">공개방</option>
+                <option value="PRIVATE">비공개방 (비밀번호 필요)</option>
+            </select>
+        </div>
+        <div class="form-group" id="passwordGroup" style="display: none;">
+            <label>비밀번호</label>
+            <input type="password" name="roomPassword" id="roomPassword" placeholder="비밀번호를 입력하세요">
+        </div>
+        <button type="submit">방 만들기 및 입장</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <h2>초대 링크로 참여하기</h2>
+    <div class="form-group">
+        <label>방 코드 입력</label>
+        <input type="text" id="roomCode" placeholder="예: A1B2C3">
+    </div>
+    <button style="background: #2196F3;" onclick="joinRoom()">방 입장하기</button>
+</div>
+
+<script>
+    // 비공개방 선택 시 비밀번호 창이 뜨게 하는 함수
+    function togglePassword() {
+        const roomType = document.getElementById('roomType').value;
+        const passwordGroup = document.getElementById('passwordGroup');
+        if (roomType === 'PRIVATE') {
+            passwordGroup.style.display = 'block';
+        } else {
+            passwordGroup.style.display = 'none';
+        }
+    }
+
+    function createRoom() {
+        alert('방 만들기 기능은 백엔드 연결 후 활성화됩니다!');
+    }
+
+    function joinRoom() {
+        alert('방 입장 기능은 백엔드 연결 후 활성화됩니다!');
+    }
+</script>
+</body>
+</html>
+
