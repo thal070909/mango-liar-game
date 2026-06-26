@@ -4,34 +4,115 @@
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #FFF9E6; color: #333; text-align: center; padding-top: 50px; }
-        .container { max-width: 500px; margin: 0 auto; background: #FFFFFF; padding: 40px; border-radius: 30px; border: 4px solid #FFD700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
-        h1 { color: #FF8C00; margin-bottom: 5px; font-size: 32px; }
-        .subtitle { color: #D2691E; margin-bottom: 30px; font-weight: bold; }
+        :root {
+            --bg-color: #FFF9E6;
+            --text-color: #333333;
+            --container-bg: #FFFFFF;
+            --border-color: #FFD700;
+            --input-bg: #FFFDF0;
+            --subtitle-color: #D2691E;
+            --shadow-color: rgba(255, 215, 0, 0.2);
+            --label-color: #FF8C00;
+            --item-bg: #FFFDF0;
+            --btn-gradient: linear-gradient(45deg, #FFD700, #FF8C00);
+            --font-family: 'Malgun Gothic', sans-serif;
+        }
+
+        .dark-mode {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --container-bg: #1c1c1e;
+            --border-color: #FF9500;
+            --input-bg: #2c2c2e;
+            --subtitle-color: #FF9500;
+            --shadow-color: rgba(255, 149, 0, 0.15);
+            --label-color: #FF9500;
+            --item-bg: #2c2c2e;
+            --btn-gradient: linear-gradient(45deg, #FF9500, #CC7000);
+        }
+
+        .excel-mode {
+            --bg-color: #f3f2f1;
+            --container-bg: #ffffff;
+            --border-color: #107c41;
+            --input-bg: #ffffff;
+            --subtitle-color: #333333;
+            --shadow-color: rgba(0,0,0,0.1);
+            --label-color: #107c41;
+            --item-bg: #f9f9f9;
+            --btn-gradient: #107c41;
+            --font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+        }
+        .excel-mode.dark-mode {
+            --bg-color: #212121;
+            --container-bg: #333333;
+            --border-color: #217346;
+            --input-bg: #444444;
+            --subtitle-color: #dddddd;
+            --label-color: #4CAF50;
+            --item-bg: #444444;
+            --btn-gradient: #217346;
+        }
+        .excel-mode .container { border-radius: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
+        .excel-mode input[type="text"], .excel-mode button, .excel-mode .room-list-box { border-radius: 0; }
+        .excel-mode .round-label, .excel-mode .emoji-label { border-radius: 0; border: 1px solid #ccc; }
+
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); text-align: center; padding-top: 50px; transition: all 0.3s ease; margin: 0; }
+        .container { max-width: 500px; margin: 0 auto; background: var(--container-bg); padding: 40px; border-radius: 30px; border: 4px solid var(--border-color); box-shadow: 0 0 30px var(--shadow-color); transition: all 0.3s ease; position: relative; }
+
+        .top-btn-group { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; }
+        .mode-toggle-btn {
+            background: var(--input-bg); border: 2px solid var(--border-color);
+            color: var(--text-color); padding: 6px 12px; border-radius: 20px;
+            font-weight: bold; cursor: pointer; font-size: 13px;
+            display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;
+        }
+        .excel-mode .mode-toggle-btn { border-radius: 0; }
+        .mode-toggle-btn:hover { transform: scale(1.05); }
+
+        h1 { color: var(--label-color); margin-bottom: 5px; font-size: 32px; transition: 0.2s; }
+        .subtitle { color: var(--subtitle-color); margin-bottom: 30px; font-weight: bold; transition: 0.2s; }
 
         .form-group { margin-bottom: 25px; text-align: left; }
-        label { display: block; margin-bottom: 10px; color: #FF8C00; font-weight: bold; }
-        input[type="text"] { width: 100%; padding: 15px; border-radius: 10px; border: 2px solid #FFD700; box-sizing: border-box; background: #FFFDF0; font-size: 16px; }
+        .form-group > label { display: block; margin-bottom: 12px; color: var(--label-color); font-weight: bold; transition: 0.2s; font-size: 20px; }
+
+        input[type="text"] { width: 100%; padding: 15px; border-radius: 10px; border: 2px solid var(--border-color); box-sizing: border-box; background: var(--input-bg); color: var(--text-color); font-size: 18px; transition: all 0.3s; }
 
         .emoji-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; justify-items: center; }
-        .emoji-label { font-size: 28px; cursor: pointer; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 15px; background: #FFFDF0; border: 2px solid #FFD700; transition: 0.2s; }
+        .emoji-label { font-size: 28px; cursor: pointer; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 15px; background: var(--item-bg); border: 2px solid var(--border-color); transition: all 0.2s; }
         input[type="radio"] { display: none; }
-        input[type="radio"]:checked + .emoji-label { background: #FFD700; transform: scale(1.1); box-shadow: 0 0 10px #FFD700; }
+        input[type="radio"]:checked + .emoji-label { background: var(--border-color); transform: scale(1.1); box-shadow: 0 0 10px var(--border-color); }
 
-        /* 라운드 선택 버튼 */
         .round-group { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px;}
-        .round-label { flex: 1; text-align: center; font-weight: bold; cursor: pointer; padding: 12px; border-radius: 10px; background: #FFFDF0; border: 2px solid #FFD700; transition: 0.2s; color: #553300;}
-        input[name="rounds"]:checked + .round-label { background: #FF8C00; color: white; border-color: #FF8C00;}
+        .round-label { flex: 1; text-align: center; font-weight: bold; cursor: pointer; padding: 15px; border-radius: 10px; background: var(--item-bg); border: 2px solid var(--border-color); transition: all 0.2s; color: var(--text-color); font-size: 18px;}
+        input[name="rounds"]:checked + .round-label { background: var(--border-color); color: #FFF; border-color: var(--border-color);}
 
-        button { width: 100%; padding: 18px; border: none; border-radius: 15px; background: linear-gradient(45deg, #FFD700, #FF8C00); color: #553300; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        button:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3); }
-        .btn-join { background: #FFF; border: 2px solid #FF8C00; color: #FF8C00; }
-        .divider { margin: 30px 0; border-bottom: 2px dashed #FFD700; }
+        .btn-submit { width: 100%; padding: 18px; border: none; border-radius: 15px; background: var(--btn-gradient); color: #FFF; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+
+        .btn-join { background: transparent; border: 2px solid var(--label-color); color: var(--label-color); width: 100%; padding: 18px; border-radius: 15px; font-size: 20px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-join:hover { background: var(--label-color); color: #FFF; }
+
+        .divider { margin: 30px 0; border-bottom: 2px dashed var(--border-color); transition: 0.2s; }
+
+        .room-list-box { background: var(--input-bg); border: 2px solid var(--border-color); border-radius: 10px; padding: 15px; max-height: 200px; overflow-y: auto; text-align: left; transition: all 0.3s; }
+        .room-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed var(--border-color); }
+        .room-item:last-child { border-bottom: none; }
+        .room-btn { width: auto; padding: 8px 15px; margin: 0; font-size: 14px; background: var(--border-color); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;}
+        .room-btn:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="top-btn-group">
+        <button class="mode-toggle-btn" onclick="toggleExcelMode()">
+            <span id="excelIcon">📊</span> <span id="excelText">엑셀</span>
+        </button>
+        <button class="mode-toggle-btn" onclick="toggleDisplayMode()">
+            <span id="modeIcon">🌙</span> <span id="modeText">다크</span>
+        </button>
+    </div>
+
     <h1>🥭 망고의 라이어 게임 🥭</h1>
     <div class="subtitle">속고 속이는 극한의 심리게임!</div>
 
@@ -49,14 +130,19 @@
             <label><input type="radio" name="emoji" value="🍌"><div class="emoji-label">🍌</div></label>
             <label><input type="radio" name="emoji" value="🥑"><div class="emoji-label">🥑</div></label>
         </div>
-
         <label>👑 닉네임</label>
-        <input type="text" id="myNickname" placeholder="닉네임을 입력하세요">
+        <input type="text" id="myNickname" placeholder="닉네임 (최대 2글자)" maxlength="2">
     </div>
 
-    <!-- 라운드 설정 추가 -->
+    <div class="divider"></div>
+
     <div class="form-group">
-        <label>🎯 게임 라운드 설정 (방장용)</label>
+        <label>📛 방 제목 입력 (방장용)</label>
+        <input type="text" id="roomTitleInput" placeholder="방 제목을 설정해보세요 (기본: 망고의 라이어 게임방)">
+    </div>
+
+    <div class="form-group">
+        <label>🎯 새로운 방 파기 (방장용)</label>
         <div class="round-group">
             <label><input type="radio" name="rounds" value="3" checked><div class="round-label">3 라운드</div></label>
             <label><input type="radio" name="rounds" value="5"><div class="round-label">5 라운드</div></label>
@@ -65,27 +151,100 @@
     </div>
 
     <form action="/create-room" method="POST" onsubmit="return saveInfo()">
-        <button type="submit">새로운 방 만들기</button>
+        <button type="submit" class="btn-submit">새로운 방 만들기</button>
     </form>
 
     <div class="divider"></div>
 
     <div class="form-group">
-        <label>방 코드</label>
+        <label>🔑 초대 코드로 입장</label>
         <input type="text" id="roomCode" placeholder="초대 코드를 입력하세요">
+        <button class="btn-join" onclick="joinRoom()">코드로 입장하기</button>
     </div>
-    <button class="btn-join" onclick="joinRoom()">초대 코드로 방 입장하기</button>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+        <label>🔥 현재 참여 가능한 방 목록</label>
+        <div id="roomListContainer" class="room-list-box">
+            <div style="text-align:center; color:#888;">방 목록을 불러오는 중...</div>
+        </div>
+    </div>
 </div>
 
 <script>
+    function applySavedMode() {
+        var savedMode = localStorage.getItem('mangoLiarDisplayMode');
+        var savedExcel = localStorage.getItem('mangoLiarExcelMode');
+        if (savedMode === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('modeIcon').innerText = '☀️';
+            document.getElementById('modeText').innerText = '라이트';
+        } else {
+            document.body.classList.remove('dark-mode');
+            document.getElementById('modeIcon').innerText = '🌙';
+            document.getElementById('modeText').innerText = '다크';
+        }
+        if (savedExcel === 'true') document.body.classList.add('excel-mode');
+        else document.body.classList.remove('excel-mode');
+    }
+
+    function toggleDisplayMode() {
+        if (document.body.classList.contains('dark-mode')) localStorage.setItem('mangoLiarDisplayMode', 'light');
+        else localStorage.setItem('mangoLiarDisplayMode', 'dark');
+        applySavedMode();
+    }
+
+    function toggleExcelMode() {
+        if (document.body.classList.contains('excel-mode')) localStorage.setItem('mangoLiarExcelMode', 'false');
+        else localStorage.setItem('mangoLiarExcelMode', 'true');
+        applySavedMode();
+    }
+
+    window.onload = function() {
+        applySavedMode();
+
+        fetch('/api/rooms')
+            .then(res => res.json())
+            .then(data => {
+                var container = document.getElementById('roomListContainer');
+                container.innerHTML = '';
+                if(data.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">현재 열려있는 방이 없습니다.</div>';
+                } else {
+                    data.forEach(function(room) {
+                        var isFull = room.playerCount >= 10;
+                        var status = room.isPlaying ? '<span style="color:#ff4500">[게임중]</span>' : (isFull ? '<span style="color:gray">[만원]</span>' : '<span style="color:#32CD32">[대기중]</span>');
+                        var btnDisabled = isFull ? 'disabled' : '';
+
+                        container.innerHTML += `
+                            <div class="room-item">
+                                <div>
+                                    <strong style="font-size:18px; color: var(--panel-border);">${room.roomTitle}</strong> ${status}<br>
+                                    <span style="font-size:14px; opacity: 0.8;">코드: ${room.roomId} | 인원: ${room.playerCount}/10 | ${room.totalRounds}라운드제</span>
+                                </div>
+                                <button class="room-btn" onclick="quickJoin('${room.roomId}')" ${btnDisabled}>입장하기</button>
+                            </div>
+                        `;
+                    });
+                }
+            });
+    };
+
+    function quickJoin(code) { document.getElementById('roomCode').value = code; joinRoom(); }
+
     function saveInfo() {
         var nickname = document.getElementById('myNickname').value.trim();
         var emoji = document.querySelector('input[name="emoji"]:checked').value;
         var rounds = document.querySelector('input[name="rounds"]:checked').value;
-        if(!nickname) { alert('닉네임을 입력해주세요!'); return false; }
+        var title = document.getElementById('roomTitleInput').value.trim() || "망고의 라이어 게임방";
+
+        if(!nickname || nickname.length > 2) { alert('닉네임은 최대 2글자까지만 입력해주세요!'); return false; }
+
         sessionStorage.setItem('liarGameNickname', nickname);
         sessionStorage.setItem('liarGameEmoji', emoji);
         sessionStorage.setItem('liarGameRounds', rounds);
+        sessionStorage.setItem('liarGameRoomTitle', title);
         return true;
     }
 
@@ -93,14 +252,15 @@
         var nickname = document.getElementById('myNickname').value.trim();
         var roomCode = document.getElementById('roomCode').value.trim();
         var emoji = document.querySelector('input[name="emoji"]:checked').value;
-        if(!nickname) { alert('닉네임을 입력해주세요!'); return; }
+
+        if(!nickname || nickname.length > 2) { alert('닉네임은 최대 2글자까지만 입력해주세요!'); return; }
         if(!roomCode) { alert('방 코드를 입력해주세요!'); return; }
+
         sessionStorage.setItem('liarGameNickname', nickname);
         sessionStorage.setItem('liarGameEmoji', emoji);
-        sessionStorage.setItem('liarGameRounds', "0"); // 참여자는 방장 룰을 따름
+        sessionStorage.setItem('liarGameRounds', "0");
         window.location.href = '/room/' + roomCode;
     }
 </script>
-
 </body>
 </html>
