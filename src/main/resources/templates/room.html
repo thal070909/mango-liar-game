@@ -170,7 +170,6 @@
     <div class="scoreboard-panel">
         <div class="score-title">🏆 실시간 점수판</div>
         <ul class="score-list" id="scoreListUi"></ul>
-
         <div class="score-guide">
             <h4>📊 점수 획득 기준</h4>
             <ul class="guide-list">
@@ -195,6 +194,7 @@
     </div>
 </div>
 
+<!-- 모달 창 모음 -->
 <div id="explainModal" class="modal">
     <div class="modal-box" style="box-shadow: 0 0 30px #32CD32;">
         <h2 style="margin-top: 0; color: #32CD32;">🗣️ 내 차례입니다!</h2>
@@ -302,6 +302,43 @@
     var hostId = null;
     var isSpectator = false;
     var countdownInterval;
+
+    // ==========================================
+    // 🎨 [신규 추가] 상시 테마 유지 및 제어 로직
+    // ==========================================
+    function applySavedMode() {
+        var savedMode = localStorage.getItem('mangoLiarDisplayMode');
+        var savedExcel = localStorage.getItem('mangoLiarExcelMode');
+        if (savedMode === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('modeIcon').innerText = '☀️';
+            document.getElementById('modeText').innerText = '라이트';
+        } else {
+            document.body.classList.remove('dark-mode');
+            document.getElementById('modeIcon').innerText = '🌙';
+            document.getElementById('modeText').innerText = '다크';
+        }
+        if (savedExcel === 'true') document.body.classList.add('excel-mode');
+        else document.body.classList.remove('excel-mode');
+    }
+
+    function toggleDisplayMode() {
+        if (document.body.classList.contains('dark-mode')) localStorage.setItem('mangoLiarDisplayMode', 'light');
+        else localStorage.setItem('mangoLiarDisplayMode', 'dark');
+        applySavedMode();
+    }
+
+    function toggleExcelMode() {
+        if (document.body.classList.contains('excel-mode')) localStorage.setItem('mangoLiarExcelMode', 'false');
+        else localStorage.setItem('mangoLiarExcelMode', 'true');
+        applySavedMode();
+    }
+
+    // 문서 로드 즉시 로컬스토리지의 테마 세팅 적용
+    window.addEventListener('DOMContentLoaded', function() {
+        applySavedMode();
+    });
+    // ==========================================
 
     document.getElementById('myNameDisplay').innerText = myFullName;
 
@@ -465,7 +502,6 @@
                             document.getElementById('explainInput').focus();
                         }
                     }
-
                 } else if (data.type === 'WAITING_FOR_VOTE') {
                     clearInterval(countdownInterval);
                     document.getElementById('timerBoard').innerText = "👀 모든 설명 종료! 충분히 대화하고 추리하세요.";
@@ -514,7 +550,6 @@
                         }
                     }
 
-                    // [신규] 반론 종료 후 수동 전환 대기방 처리 수신
                 } else if (data.type === 'WAITING_FOR_PUBLIC_VOTE') {
                     clearInterval(countdownInterval);
                     closeModal('defenseModal');
@@ -526,12 +561,12 @@
 
                 } else if (data.type === 'PUBLIC_VOTE_START') {
                     closeModal('defenseModal');
-                    document.getElementById('hostPublicVoteBtn').style.display = 'none'; // 버튼 수납
+                    document.getElementById('hostPublicVoteBtn').style.display = 'none';
 
                     if(!isSpectator) {
                         document.getElementById('publicAccusedDisplay').innerText = data.content;
                         document.getElementById('publicVoteBoard').innerHTML = '';
-                        document.getElementById('unvotedListDisplay').innerText = data.turnPlayerName; // 백엔드 위임받은 초기 미투표자 배치
+                        document.getElementById('unvotedListDisplay').innerText = data.turnPlayerName;
 
                         if(data.content === myFullName) {
                             document.getElementById('btnKill').style.display = 'none';
@@ -555,7 +590,6 @@
                             var textStr = voteVal === 'KILL' ? '🔴 찬성 (처형)' : '🔵 반대 (생존)';
                             board.innerHTML += '<div class="vote-item">' + key + ' ➔ <span class="' + styleClass + '">' + textStr + '</span></div>';
                         }
-                        // [신규] 실시간 변동된 미투표자 리스트 갱신 출력
                         document.getElementById('unvotedListDisplay').innerText = data.content;
                     }
                 } else if (data.type === 'LIAR_GUESS_START') {
@@ -667,7 +701,6 @@
 
     function hostStartVote() { document.getElementById('hostVoteBtn').style.display = 'none'; stompClient.send("/app/game.startVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
 
-    // [신규] 방장 전용 수동 찬반투표 개시 발송 함수
     function hostStartPublicVote() {
         document.getElementById('hostPublicVoteBtn').style.display = 'none';
         stompClient.send("/app/game.startPublicVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId }));
