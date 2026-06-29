@@ -5,8 +5,10 @@
     <title>🥭 망고의 라이어 게임 🥭</title>
     <script>
         (function() {
-            if(localStorage.getItem('isDark') === 'true') document.documentElement.classList.add('dark-mode');
-            if(localStorage.getItem('isExcel') === 'true') document.documentElement.classList.add('excel-mode');
+            var mode = localStorage.getItem('isDark');
+            var excel = localStorage.getItem('isExcel');
+            if (mode === 'true') document.documentElement.classList.add('dark-mode');
+            if (excel === 'true') document.documentElement.classList.add('excel-mode');
         })();
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
@@ -345,6 +347,17 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    // [버그 픽스] 모든 모달창을 강제로 깔끔하게 닫아주는 만능 청소기 함수
+    function closeAllGameModals() {
+        closeModal('explainModal');
+        closeModal('wordModal');
+        closeModal('voteModal');
+        closeModal('defenseModal');
+        closeModal('publicVoteModal');
+        closeModal('liarGuessModal');
+        closeModal('liarWaitingModal');
+    }
+
     function startLocalTimer(seconds, targetElementId, prefix, onExpireText) {
         clearInterval(countdownInterval);
         var left = seconds;
@@ -468,7 +481,6 @@
                         playerDiv.appendChild(bubbleDiv);
                         playerDiv.appendChild(document.createTextNode(player));
 
-                        // 서버에서 보내준 기존 힌트 복원
                         if (data.explanations && data.explanations[player]) {
                             bubbleDiv.innerText = data.explanations[player];
                             bubbleDiv.style.display = 'block';
@@ -628,11 +640,10 @@
                         startLocalTimer(30, 'timerBoard', "🤔 라이어가 단어 유추 중: ", "종료!");
                     }
 
+                    // [버그 픽스] 라운드가 강제로 종료되었을 때 잔여 팝업창 모조리 폐기
                 } else if (data.type === 'ROUND_END') {
                     clearInterval(countdownInterval);
-                    closeModal('publicVoteModal');
-                    closeModal('liarGuessModal');
-                    closeModal('liarWaitingModal');
+                    closeAllGameModals();
                     clearAllSpeechBubbles();
 
                     if(data.scores) updateScoreBoard(data.scores);
@@ -641,18 +652,15 @@
                         document.getElementById('timerBoard').innerText = "⏳ 라운드 결과 발표";
                         document.getElementById('resultTitle').innerText = "라운드 종료";
                         document.getElementById('resultContent').innerText = data.content;
-                        document.getElementById('nextRoundBtn').style.display = 'block';
-                        document.getElementById('finalRankingBox').style.display = 'none';
                         document.getElementById('hostEndMenu').style.display = 'none';
                         document.getElementById('guestEndMenu').style.display = 'none';
                         document.getElementById('resultModal').style.display = 'flex';
                     }
 
+                    // [버그 픽스] 게임이 완전히 종료되었을 때 잔여 팝업창 모조리 폐기
                 } else if (data.type === 'GAME_OVER_ALL') {
                     clearInterval(countdownInterval);
-                    closeModal('publicVoteModal');
-                    closeModal('liarGuessModal');
-                    closeModal('liarWaitingModal');
+                    closeAllGameModals();
                     clearAllSpeechBubbles();
 
                     document.getElementById('resultTitle').innerText = "🏆 최종 결과 발표 🏆";
@@ -667,7 +675,6 @@
                     document.getElementById('finalRankingBox').innerHTML = rankHtml;
                     document.getElementById('finalRankingBox').style.display = 'block';
 
-                    document.getElementById('nextRoundBtn').style.display = 'none';
                     if(myId === hostId && !isSpectator) {
                         document.getElementById('hostEndMenu').style.display = 'flex';
                         document.getElementById('guestEndMenu').style.display = 'none';
@@ -680,7 +687,7 @@
                     if(!isSpectator) document.getElementById('timerBoard').innerText = "🏁 모든 게임 종료";
 
                 } else if (data.type === 'GAME_RESET') {
-                    closeModal('resultModal');
+                    closeAllGameModals();
                     document.getElementById('timerBoard').innerText = "⏳ 새로운 게임 대기 중...";
                     document.getElementById('roundDisplay').innerText = data.currentRound + "/" + data.totalRounds + " 라운드";
                     if(data.scores) updateScoreBoard(data.scores);

@@ -1,35 +1,38 @@
 package com.example.liargame;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class GameSession {
     private String roomId;
     private String hostId;
     private String roomTitle;
     private String roomPassword;
-    private Map<String, String> players = new LinkedHashMap<>();
-    private Map<String, String> spectators = new LinkedHashMap<>();
+    // [버그 수정] 여러 명이 동시에 접속하고 투표해도 서버가 터지지 않도록 스레드 세이프 구조 적용
+    private Map<String, String> players = new ConcurrentHashMap<>();
+    private Map<String, String> spectators = new ConcurrentHashMap<>();
 
     private String liarId;
     private String word;
     private boolean isPlaying = false;
     private boolean baboMode = false;
 
-    private Map<String, String> votes = new HashMap<>();
-    private List<String> turnOrder = new ArrayList<>();
+    // [버그 수정] 타이머 충돌 기절 방지
+    private Map<String, String> votes = new ConcurrentHashMap<>();
+    private List<String> turnOrder = new CopyOnWriteArrayList<>();
     private int currentTurnIndex = 0;
     private Timer gameTimer;
 
     private int totalRounds = 3;
     private int currentRound = 1;
     private String accusedFullName;
-    private Map<String, String> publicVotes = new HashMap<>();
-    private Map<String, Double> scores = new HashMap<>();
+    private Map<String, String> publicVotes = new ConcurrentHashMap<>();
+    private Map<String, Double> scores = new ConcurrentHashMap<>();
 
-    // [신규 추가] 턴수 제어 및 힌트 보관소
     private int maxExplanationTurns = 1;
     private int currentExplanationRound = 1;
-    private Map<String, String> explanations = new HashMap<>();
+    private Map<String, String> explanations = new ConcurrentHashMap<>();
 
     public GameSession(String roomId) { this.roomId = roomId; }
 

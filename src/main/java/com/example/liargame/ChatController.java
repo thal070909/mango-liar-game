@@ -297,8 +297,6 @@ public class ChatController {
         listMsg.setScores(session.getScores());
         listMsg.setPlaying(session.isPlaying());
         listMsg.setRoomTitle(session.getRoomTitle());
-
-        // [버그 수정] 관전자 등 인원 변동 시 화면 갱신할 때 기존 힌트들을 함께 전송합니다.
         listMsg.setExplanations(session.getExplanations());
 
         messagingTemplate.convertAndSend("/topic/room/" + session.getRoomId(), listMsg);
@@ -378,7 +376,6 @@ public class ChatController {
         GameSession session = sessions.get(msg.getRoomId());
         if (session != null && session.isPlaying()) {
 
-            // 누적 힌트를 서버 메모리에 박제
             String existingHint = session.getExplanations().getOrDefault(msg.getSender(), "");
             String newHint = existingHint.isEmpty() ? msg.getContent() : existingHint + " / " + msg.getContent();
             session.getExplanations().put(msg.getSender(), newHint);
@@ -386,7 +383,7 @@ public class ChatController {
             ChatMessage expMsg = new ChatMessage();
             expMsg.setType(ChatMessage.MessageType.EXPLANATION);
             expMsg.setSender(msg.getSender());
-            expMsg.setContent(newHint); // 누적된 전체 힌트를 보냄
+            expMsg.setContent(newHint);
             messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), expMsg);
 
             session.cancelTimer();
@@ -680,12 +677,21 @@ public class ChatController {
         session.getScores().put(liarName, session.getScores().getOrDefault(liarName, 0.0) + points);
     }
 
+    // [버그 수정] 타이밍이 꼬이지 않도록 라운드 계산 로직 수정
     private void endRound(String roomId, String resultMessage) {
         GameSession session = sessions.get(roomId);
         session.setPlaying(false);
+
+        boolean isGameOver = session.getCurrentRound() >= session.getTotalRounds();
+
+        // 종료 전에 미리 라운드를 올려둬야 화면이 즉시 갱신됩니다.
+        if (!isGameOver) {
+            session.setCurrentRound(session.getCurrentRound() + 1);
+        }
+
         sendPlayerListUpdate(session);
 
-        if (session.getCurrentRound() >= session.getTotalRounds()) {
+        if (isGameOver) {
             ChatMessage finalMsg = new ChatMessage();
             finalMsg.setType(ChatMessage.MessageType.GAME_OVER_ALL);
             finalMsg.setContent(resultMessage);
@@ -697,7 +703,6 @@ public class ChatController {
             roundMsg.setContent(resultMessage);
             roundMsg.setScores(session.getScores());
             messagingTemplate.convertAndSend("/topic/room/" + roomId, roundMsg);
-            session.setCurrentRound(session.getCurrentRound() + 1);
         }
     }
 
