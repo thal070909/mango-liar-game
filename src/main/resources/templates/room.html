@@ -103,7 +103,7 @@
 
         .sys-msg { color: var(--panel-border); text-align: center; margin: 10px 0; font-weight: bold; }
         .chat-msg { margin: 6px 0; }
-        .sender-name { color: var(--panel-border); font-weight: bold; margin-right: 5px; }
+        .sender-name { font-weight: bold; margin-right: 5px; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
 
         .action-btn { flex: 1; padding: 15px; border: none; border-radius: var(--radius-sm); background: var(--btn-gradient); color: #FFF; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: var(--btn-shadow); transition: 0.3s; display: none; }
         .action-btn:hover { opacity: 0.9; }
@@ -303,6 +303,22 @@
 </div>
 
 <script>
+    // [채팅창 이름 랜덤 색상 부여 기능]
+    var playerColors = {};
+    var colorPalette = [
+        '#E74C3C', '#2ECC71', '#3498DB', '#9B59B6', '#E67E22',
+        '#1ABC9C', '#D35400', '#2980B9', '#27AE60', '#C0392B'
+    ];
+    var colorIndex = 0;
+
+    function getPlayerColor(playerName) {
+        if (!playerColors[playerName]) {
+            playerColors[playerName] = colorPalette[colorIndex % colorPalette.length];
+            colorIndex++;
+        }
+        return playerColors[playerName];
+    }
+
     function updateToggleButtons() {
         var isDark = document.documentElement.classList.contains('dark-mode');
         var modeIcon = document.getElementById('modeIcon');
@@ -347,7 +363,6 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // [버그 픽스] 모든 모달창을 강제로 깔끔하게 닫아주는 만능 청소기 함수
     function closeAllGameModals() {
         closeModal('explainModal');
         closeModal('wordModal');
@@ -382,10 +397,9 @@
         return sortedScores;
     }
 
+    // [버그 픽스] 관전자가 들어올 때 기존 투표 버튼들을 강제로 숨겨버리던 주범(2줄)을 완벽 삭제했습니다.
     function checkHostPrivilege(isPlaying, currentRound) {
         document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('hostVoteBtn').style.display = 'none';
-        document.getElementById('hostPublicVoteBtn').style.display = 'none';
         document.getElementById('spectatorJoinBtn').style.display = 'none';
 
         var baboContainer = document.getElementById('baboModeContainer');
@@ -429,17 +443,20 @@
                 if (data.type === 'SYSTEM') {
                     chatArea.innerHTML += "<div class='sys-msg' style='color: var(--panel-border);'>" + data.content + "</div>";
                 } else if (data.type === 'CHAT') {
-                    chatArea.innerHTML += "<div class='chat-msg'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
+                    var pColor = getPlayerColor(data.sender);
+                    chatArea.innerHTML += "<div class='chat-msg'><span class='sender-name' style='color: " + pColor + ";'>" + data.sender + ":</span> " + data.content + "</div>";
 
                 } else if (data.type === 'EXPLANATION') {
                     var bubble = document.getElementById('bubble_' + data.sender);
                     if(bubble) { bubble.innerText = data.content; bubble.style.display = 'block'; }
-                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-green);'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
+                    var pColor = getPlayerColor(data.sender);
+                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-green);'><span class='sender-name' style='color: " + pColor + ";'>" + data.sender + ":</span> " + data.content + "</div>";
 
                 } else if (data.type === 'DEFENSE_MSG') {
                     var bubble = document.getElementById('bubble_' + data.sender);
                     if(bubble) { bubble.innerText = data.content; bubble.style.display = 'block'; }
-                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-orange); font-size:18px;'><strong>🚨 [최후변론] " + data.sender + ":</strong> " + data.content + "</div>";
+                    var pColor = getPlayerColor(data.sender);
+                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-orange); font-size:18px;'><strong>🚨 [최후변론] <span style='color: " + pColor + ";'>" + data.sender + "</span>:</strong> " + data.content + "</div>";
 
                 } else if (data.type === 'PLAYER_LIST') {
                     hostId = data.hostId;
@@ -507,6 +524,10 @@
                     clearAllSpeechBubbles();
                     document.getElementById('startBtn').style.display = 'none';
                     document.getElementById('spectatorJoinBtn').style.display = 'none';
+
+                    // 게임이 새로 시작할 때는 당연히 숨김 처리
+                    document.getElementById('hostVoteBtn').style.display = 'none';
+                    document.getElementById('hostPublicVoteBtn').style.display = 'none';
 
                     var baboContainer = document.getElementById('baboModeContainer');
                     if(baboContainer) baboContainer.style.display = 'none';
@@ -640,7 +661,6 @@
                         startLocalTimer(30, 'timerBoard', "🤔 라이어가 단어 유추 중: ", "종료!");
                     }
 
-                    // [버그 픽스] 라운드가 강제로 종료되었을 때 잔여 팝업창 모조리 폐기
                 } else if (data.type === 'ROUND_END') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
@@ -657,7 +677,6 @@
                         document.getElementById('resultModal').style.display = 'flex';
                     }
 
-                    // [버그 픽스] 게임이 완전히 종료되었을 때 잔여 팝업창 모조리 폐기
                 } else if (data.type === 'GAME_OVER_ALL') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
