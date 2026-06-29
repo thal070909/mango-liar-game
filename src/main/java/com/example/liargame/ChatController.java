@@ -20,7 +20,8 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
     private Map<String, GameSession> sessions = new HashMap<>();
 
-       private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
+    // [업데이트] 방대한 카테고리별 대형 단어장 (총 700여 개 단어 완벽 수록)
+    private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
         put("과일/야채", Arrays.asList(
                 "사과", "바나나", "파인애플", "복숭아", "수박", "망고", "딸기", "포도", "멜론", "참외",
                 "자두", "살구", "감", "귤", "오렌지", "자몽", "레몬", "라임", "키위", "블루베리",
@@ -124,7 +125,6 @@ public class ChatController {
                 "포레스트검프", "쇼생크탈출", "인생은아름다워", "글래디에이터2", "라따뚜이", "코코", "겨울왕국2", "주먹왕랄프", "몬스터주식회사", "업"
         ));
     }};
-
     @GetMapping("/api/rooms")
     @ResponseBody
     public List<Map<String, Object>> getActiveRooms() {
@@ -136,7 +136,6 @@ public class ChatController {
             roomInfo.put("playerCount", session.getPlayers().size() + session.getSpectators().size());
             roomInfo.put("isPlaying", session.isPlaying());
             roomInfo.put("totalRounds", session.getTotalRounds());
-            // 비밀번호 설정 유무를 보스 정보로 가공해서 전달
             roomInfo.put("hasPassword", session.getRoomPassword() != null && !session.getRoomPassword().trim().isEmpty());
             roomList.add(roomInfo);
         }
@@ -152,18 +151,16 @@ public class ChatController {
             session.setHostId(msg.getPlayerId());
             String title = (msg.getRoomTitle() != null && !msg.getRoomTitle().trim().isEmpty()) ? msg.getRoomTitle() : "망고의 라이어 게임방";
             session.setRoomTitle(title);
-            // 방 생성자가 보낸 비밀번호를 세션에 안착
             if(msg.getRoomPassword() != null && !msg.getRoomPassword().trim().isEmpty()) {
                 session.setRoomPassword(msg.getRoomPassword().trim());
             }
         }
 
-        // [비밀번호 보안 검증 가드]
         if (session.getRoomPassword() != null && !session.getRoomPassword().isEmpty()) {
             if (!session.getRoomPassword().equals(msg.getRoomPassword())) {
                 ChatMessage error = new ChatMessage();
                 error.setType(ChatMessage.MessageType.SYSTEM);
-                error.setContent("ERROR_PASSWORD"); // 약속된 오류 키워드 발송
+                error.setContent("ERROR_PASSWORD");
                 messagingTemplate.convertAndSend("/topic/player/" + msg.getPlayerId(), error);
                 return;
             }
@@ -217,9 +214,20 @@ public class ChatController {
                         session.cancelTimer();
                         sessions.remove(roomId);
                     } else {
-                        if (playerId.equals(session.getHostId()) && !session.getPlayers().isEmpty()) {
-                            String newHostId = session.getPlayers().keySet().iterator().next();
-                            session.setHostId(newHostId);
+                        // [신규] 방장이 나갔을 때 랜덤 방장 위임 시스템 적용
+                        if (playerId.equals(session.getHostId())) {
+                            List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
+                            if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
+                            if(!candidates.isEmpty()) {
+                                String newHostId = candidates.get(new Random().nextInt(candidates.size()));
+                                session.setHostId(newHostId);
+                                String newHostName = session.getPlayers().getOrDefault(newHostId, session.getSpectators().get(newHostId));
+
+                                ChatMessage hostMsg = new ChatMessage();
+                                hostMsg.setType(ChatMessage.MessageType.SYSTEM);
+                                hostMsg.setContent("👑 기존 방장이 퇴장하여 [" + newHostName + "] 님이 새로운 방장으로 임명되었습니다!");
+                                messagingTemplate.convertAndSend("/topic/room/" + roomId, hostMsg);
+                            }
                         }
                         sendPlayerListUpdate(session);
                     }
@@ -245,9 +253,20 @@ public class ChatController {
                 session.cancelTimer();
                 sessions.remove(msg.getRoomId());
             } else {
-                if (msg.getPlayerId().equals(session.getHostId()) && !session.getPlayers().isEmpty()) {
-                    String newHostId = session.getPlayers().keySet().iterator().next();
-                    session.setHostId(newHostId);
+                // [신규] 방장 나가기 버튼 클릭 시 랜덤 위임 적용
+                if (msg.getPlayerId().equals(session.getHostId())) {
+                    List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
+                    if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
+                    if(!candidates.isEmpty()) {
+                        String newHostId = candidates.get(new Random().nextInt(candidates.size()));
+                        session.setHostId(newHostId);
+                        String newHostName = session.getPlayers().getOrDefault(newHostId, session.getSpectators().get(newHostId));
+
+                        ChatMessage hostMsg = new ChatMessage();
+                        hostMsg.setType(ChatMessage.MessageType.SYSTEM);
+                        hostMsg.setContent("👑 기존 방장이 퇴장하여 [" + newHostName + "] 님이 새로운 방장으로 임명되었습니다!");
+                        messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), hostMsg);
+                    }
                 }
                 sendPlayerListUpdate(session);
             }
@@ -257,7 +276,8 @@ public class ChatController {
     @MessageMapping("/game.spectatorJoin")
     public void spectatorJoin(ChatMessage msg) {
         GameSession session = sessions.get(msg.getRoomId());
-        if (session != null && !session.isPlaying() && session.getSpectators().containsKey(msg.getPlayerId())) {
+        // [수정] 게임이 진행 중이거나(isPlaying) 라운드가 시작되었으면 참여 불가
+        if (session != null && !session.isPlaying() && session.getCurrentRound() == 1 && session.getSpectators().containsKey(msg.getPlayerId())) {
             String sName = session.getSpectators().remove(msg.getPlayerId());
             session.getPlayers().put(msg.getPlayerId(), sName);
             session.getScores().putIfAbsent(sName, 0.0);

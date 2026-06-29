@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http:// th.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
@@ -15,89 +15,44 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
         :root {
-            --bg-color: #FFF9E6;
-            --text-color: #333333;
-            --container-bg: #FFFFFF;
-            --border-color: #FFD700;
-            --stage-bg: #FFFDF0;
-            --input-bg: #FFFDF0;
-            --shadow-color: rgba(255, 215, 0, 0.3);
-            --panel-border: #FF8C00;
+            --bg-color: #FFF9E6; --text-color: #333333; --container-bg: #FFFFFF;
+            --border-color: #FFD700; --stage-bg: #FFFDF0; --input-bg: #FFFDF0;
+            --shadow-color: rgba(255, 215, 0, 0.3); --panel-border: #FF8C00;
+            --h-green: #32CD32; --h-red: #FF4500; --h-blue: #1E90FF;
+            --h-purple: #8A2BE2; --h-orange: #FF8C00;
             --btn-gradient: linear-gradient(45deg, #FFD700, #FF8C00);
             --font-family: 'Malgun Gothic', sans-serif;
-
-            --h-green: #32CD32;
-            --h-red: #FF4500;
-            --h-blue: #1E90FF;
-            --h-purple: #8A2BE2;
-            --h-orange: #FF8C00;
-
-            --radius-lg: 25px;
-            --radius-md: 20px;
-            --radius-sm: 10px;
+            --radius-lg: 25px; --radius-md: 20px; --radius-sm: 10px;
             --btn-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
             --modal-shadow: 0 0 30px rgba(255, 140, 0, 0.3);
         }
 
         html.dark-mode {
-            --bg-color: #000000;
-            --text-color: #FFFFFF;
-            --container-bg: #1c1c1e;
-            --border-color: #FF9500;
-            --stage-bg: #2c2c2e;
-            --input-bg: #2c2c2e;
-            --shadow-color: rgba(255, 149, 0, 0.15);
-            --panel-border: #FF9500;
+            --bg-color: #000000; --text-color: #FFFFFF; --container-bg: #1c1c1e;
+            --border-color: #FF9500; --stage-bg: #2c2c2e; --input-bg: #2c2c2e;
+            --shadow-color: rgba(255, 149, 0, 0.15); --panel-border: #FF9500;
+            --h-green: #2E8B57; --h-red: #CC3700; --h-blue: #1C86EE;
+            --h-purple: #7A28CB; --h-orange: #E67E22;
             --btn-gradient: linear-gradient(45deg, #FF9500, #CC7000);
-
-            --h-green: #2E8B57;
-            --h-red: #CC3700;
-            --h-blue: #1C86EE;
-            --h-purple: #7A28CB;
-            --h-orange: #E67E22;
-
             --btn-shadow: 0 5px 15px rgba(255, 149, 0, 0.3);
             --modal-shadow: 0 0 40px rgba(255, 149, 0, 0.2);
         }
 
         html.excel-mode {
-            --bg-color: #f3f2f1;
-            --container-bg: #ffffff;
-            --border-color: #107c41;
-            --stage-bg: #ffffff;
-            --input-bg: #ffffff;
-            --shadow-color: rgba(0,0,0,0.1);
-            --panel-border: #107c41;
-            --btn-gradient: #107c41;
-            --font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
-
-            --h-green: #107c41;
-            --h-red: #a4262c;
-            --h-blue: #0078d4;
-            --h-purple: #6264a7;
-            --h-orange: #d83b01;
-
-            --radius-lg: 0px;
-            --radius-md: 0px;
-            --radius-sm: 0px;
-            --btn-shadow: none;
-            --modal-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+            --bg-color: #f3f2f1; --container-bg: #ffffff; --border-color: #107c41;
+            --stage-bg: #ffffff; --input-bg: #ffffff; --shadow-color: rgba(0,0,0,0.1);
+            --panel-border: #107c41; --h-green: #107c41; --h-red: #a4262c;
+            --h-blue: #0078d4; --h-purple: #6264a7; --h-orange: #d83b01;
+            --btn-gradient: #107c41; --font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+            --radius-lg: 0px; --radius-md: 0px; --radius-sm: 0px;
+            --btn-shadow: none; --modal-shadow: 5px 5px 15px rgba(0,0,0,0.2);
         }
 
         html.excel-mode.dark-mode {
-            --bg-color: #212121;
-            --container-bg: #333333;
-            --border-color: #217346;
-            --stage-bg: #333333;
-            --input-bg: #444444;
-            --panel-border: #217346;
-            --btn-gradient: #217346;
-
-            --h-green: #217346;
-            --h-red: #d13438;
-            --h-blue: #2b88d8;
-            --h-purple: #8b8cc7;
-            --h-orange: #ea4300;
+            --bg-color: #212121; --container-bg: #333333; --border-color: #217346;
+            --stage-bg: #333333; --input-bg: #444444; --panel-border: #217346;
+            --h-green: #217346; --h-red: #d13438; --h-blue: #2b88d8;
+            --h-purple: #8b8cc7; --h-orange: #ea4300; --btn-gradient: #217346;
             --modal-shadow: 5px 5px 15px rgba(0,0,0,0.5);
         }
 
@@ -181,7 +136,7 @@
     <div class="container">
         <div class="top-btn-group">
             <button class="room-toggle-btn" onclick="toggleExcelMode()">📊 엑셀</button>
-            <button class="room-toggle-btn" onclick="toggleDisplayMode()">🌙 모드</button>
+            <button class="room-toggle-btn" onclick="toggleDisplayMode()"><span id="modeIcon">🌙</span> <span id="modeText">다크</span></button>
             <button class="leave-btn" onclick="leaveRoom()">🚪 나가기</button>
         </div>
 
@@ -334,7 +289,8 @@
             <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; flex:1;">그만하기</button>
         </div>
         <div id="guestEndMenu" style="display:none; gap:10px;">
-            <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; width:100%;">그만하기 (나가기)</button>
+            <button onclick="waitNextGame()" class="action-btn btn-green" style="display:block; flex:1;">계속하기</button>
+            <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; flex:1;">나가기</button>
         </div>
     </div>
 </div>
@@ -416,20 +372,26 @@
         return sortedScores;
     }
 
-    function checkHostPrivilege(isPlaying) {
+    // [버그 수정] 투표 버튼을 강제로 숨기는 로직을 완전히 삭제했습니다!
+    function checkHostPrivilege(isPlaying, currentRound) {
         document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('hostVoteBtn').style.display = 'none';
-        document.getElementById('hostPublicVoteBtn').style.display = 'none';
         document.getElementById('spectatorJoinBtn').style.display = 'none';
 
         var baboContainer = document.getElementById('baboModeContainer');
         if(baboContainer) baboContainer.style.display = 'none';
 
-        if(isSpectator && !isPlaying) {
+        // 오직 1라운드가 시작하기 전의 대기실(로비) 상태에서만 관전자 난입 허용
+        if(isSpectator && !isPlaying && currentRound === 1) {
             document.getElementById('spectatorJoinBtn').style.display = 'block';
         }
+
         if(myId === hostId && !isSpectator && !isPlaying) {
             document.getElementById('startBtn').style.display = 'block';
+            if(currentRound > 1) {
+                document.getElementById('startBtn').innerText = currentRound + "라운드 시작 (방장)";
+            } else {
+                document.getElementById('startBtn').innerText = "게임 시작 (방장)";
+            }
             if(baboContainer) baboContainer.style.display = 'block';
         }
     }
@@ -473,7 +435,9 @@
                     hostId = data.hostId;
                     currentPlayers = data.playerList;
                     isSpectator = !currentPlayers.includes(myFullName);
-                    checkHostPrivilege(data.playing);
+
+                    // [수정 적용] 라운드 정보를 함께 전달하여 권한을 체크합니다.
+                    checkHostPrivilege(data.playing, data.currentRound);
 
                     if(data.roomTitle) {
                         document.getElementById('dynamicRoomTitle').innerText = data.roomTitle;
@@ -526,6 +490,8 @@
                     clearAllSpeechBubbles();
                     document.getElementById('startBtn').style.display = 'none';
                     document.getElementById('spectatorJoinBtn').style.display = 'none';
+                    document.getElementById('hostVoteBtn').style.display = 'none';
+                    document.getElementById('hostPublicVoteBtn').style.display = 'none';
 
                     var baboContainer = document.getElementById('baboModeContainer');
                     if(baboContainer) baboContainer.style.display = 'none';
@@ -540,6 +506,9 @@
                     for(var i=0; i<avatars.length; i++) avatars[i].classList.remove('active-turn');
                     var currentAvatar = document.getElementById('avatar_' + data.turnPlayerName);
                     if(currentAvatar) currentAvatar.classList.add('active-turn');
+
+                    document.getElementById('hostVoteBtn').style.display = 'none';
+                    document.getElementById('hostPublicVoteBtn').style.display = 'none';
 
                     chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-green);'>▶ " + data.content + "</div>";
                     if(!isSpectator) {
@@ -706,7 +675,6 @@
                         document.getElementById('hostEndMenu').style.display = 'none';
                         document.getElementById('guestEndMenu').style.display = 'flex';
                     }
-
                     document.getElementById('resultModal').style.display = 'flex';
                     if(!isSpectator) document.getElementById('timerBoard').innerText = "🏁 모든 게임 종료";
 
@@ -729,7 +697,6 @@
                     document.getElementById('gameWord').innerText = data.word;
                     document.getElementById('wordModal').style.display = 'flex';
                 }
-                // [신규 가드] 비밀번호 해독 실패 에러 처리 판정 시 강제 퇴장 분기점 매립
                 else if (data.content === 'ERROR_PASSWORD') {
                     alert("🔒 비밀번호가 일치하지 않습니다!");
                     window.location.href = '/';
@@ -739,7 +706,6 @@
             var parsedRounds = parseInt(initRounds);
             if(isNaN(parsedRounds) || parsedRounds === 0) { parsedRounds = 3; }
             var customTitle = sessionStorage.getItem('liarGameRoomTitle') || "";
-            // 패스워드 로드해서 소켓 조인 바디에 포워딩
             var customPassword = sessionStorage.getItem('liarGameRoomPassword') || "";
             stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'totalRounds': parsedRounds, 'roomTitle': customTitle, 'roomPassword': customPassword, 'type': 'JOIN' }));
         });
@@ -760,7 +726,14 @@
 
     function hostStartVote() { document.getElementById('hostVoteBtn').style.display = 'none'; stompClient.send("/app/game.startVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
     function hostStartPublicVote() { document.getElementById('hostPublicVoteBtn').style.display = 'none'; stompClient.send("/app/game.startPublicVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
-    function spectatorJoin() { stompClient.send("/app/game.spectatorJoin", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
+    function spectatorJoin() {
+        // 게임이 진행 중일 때 참여 버튼 누르면 안내 멘트 출력
+        if (isGamePlaying) {
+            alert("해당 모든 라운드가 종료된 후에 참여할 수 있습니다.");
+            return;
+        }
+        stompClient.send("/app/game.spectatorJoin", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId }));
+    }
 
     function submitExplanation() {
         var explain = document.getElementById('explainInput').value.trim();
@@ -789,6 +762,10 @@
         document.getElementById('btnKill').style.display = 'none';
         document.getElementById('btnSave').style.display = 'none';
         stompClient.send("/app/game.publicVote", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': voteValue }));
+    }
+    function waitNextGame() {
+        closeModal('resultModal');
+        document.getElementById('timerBoard').innerText = "⏳ 방장의 재시작을 기다리는 중...";
     }
     function submitLiarGuess() {
         var guess = document.getElementById('liarWordInput').value.trim();
