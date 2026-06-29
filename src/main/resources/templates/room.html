@@ -119,8 +119,9 @@
         .leave-btn { background: var(--h-red); color: white; border: none; padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; }
         .room-toggle-btn { background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-color); padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-box { background: var(--container-bg); color: var(--text-color); padding: 40px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--modal-shadow); border: 4px solid var(--border-color); min-width: 350px; }
+        /* [핵심 방어막] 모달창의 z-index와 배경색을 더 강력하게 고정 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-box { background: var(--container-bg); color: var(--text-color); padding: 40px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--modal-shadow); border: 4px solid var(--border-color); min-width: 350px; z-index: 10000; }
         html.excel-mode .modal-box { border-width: 2px; }
 
         .vote-board { margin: 20px 0; padding: 15px; background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); border-radius: var(--radius-sm); text-align: left; max-height: 200px; overflow-y: auto; }
@@ -303,7 +304,6 @@
 </div>
 
 <script>
-    // [채팅창 이름 랜덤 색상 부여 기능]
     var playerColors = {};
     var colorPalette = [
         '#E74C3C', '#2ECC71', '#3498DB', '#9B59B6', '#E67E22',
@@ -363,6 +363,7 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    // 🔥 [핵심 방어막] 화면에 떠 있는 모든 팝업을 무조건 다 닫아버립니다. (겹침 및 데드락 방지)
     function closeAllGameModals() {
         closeModal('explainModal');
         closeModal('wordModal');
@@ -371,6 +372,7 @@
         closeModal('publicVoteModal');
         closeModal('liarGuessModal');
         closeModal('liarWaitingModal');
+        closeModal('resultModal');
     }
 
     function startLocalTimer(seconds, targetElementId, prefix, onExpireText) {
@@ -397,7 +399,6 @@
         return sortedScores;
     }
 
-    // [버그 픽스] 관전자가 들어올 때 기존 투표 버튼들을 강제로 숨겨버리던 주범(2줄)을 완벽 삭제했습니다.
     function checkHostPrivilege(isPlaying, currentRound) {
         document.getElementById('startBtn').style.display = 'none';
         document.getElementById('spectatorJoinBtn').style.display = 'none';
@@ -525,10 +526,6 @@
                     document.getElementById('startBtn').style.display = 'none';
                     document.getElementById('spectatorJoinBtn').style.display = 'none';
 
-                    // 게임이 새로 시작할 때는 당연히 숨김 처리
-                    document.getElementById('hostVoteBtn').style.display = 'none';
-                    document.getElementById('hostPublicVoteBtn').style.display = 'none';
-
                     var baboContainer = document.getElementById('baboModeContainer');
                     if(baboContainer) baboContainer.style.display = 'none';
 
@@ -555,8 +552,10 @@
                         }
                     }
 
+                    // 🔥 [강력 방어] 게임의 국면이 바뀔 때 무조건 closeAllGameModals() 호출
                 } else if (data.type === 'WAITING_FOR_VOTE') {
                     clearInterval(countdownInterval);
+                    closeAllGameModals();
                     document.getElementById('timerBoard').style.color = 'var(--h-orange)';
                     document.getElementById('timerBoard').innerText = "👀 모든 설명 종료! 충분히 대화하고 추리하세요.";
                     chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-orange);'>" + data.content + "</div>";
@@ -565,7 +564,8 @@
                     }
 
                 } else if (data.type === 'VOTE_START') {
-                    closeModal('explainModal');
+                    clearInterval(countdownInterval);
+                    closeAllGameModals();
                     document.getElementById('hostVoteBtn').style.display = 'none';
                     chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-red);'>🚨 " + data.content + "</div>";
 
@@ -583,7 +583,8 @@
                     }
 
                 } else if (data.type === 'DEFENSE_START') {
-                    closeModal('voteModal');
+                    clearInterval(countdownInterval);
+                    closeAllGameModals();
                     var accusedName = data.content;
                     if(!isSpectator) {
                         document.getElementById('accusedNameDisplay').innerText = "용의자: [" + accusedName + "]";
@@ -606,7 +607,7 @@
 
                 } else if (data.type === 'WAITING_FOR_PUBLIC_VOTE') {
                     clearInterval(countdownInterval);
-                    closeModal('defenseModal');
+                    closeAllGameModals();
                     document.getElementById('timerBoard').innerText = "👀 최후 변론 종료! 추리 완료 후 방장이 찬반 투표를 개시하세요.";
                     chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-orange);'>" + data.content + "</div>";
                     if (myId === hostId && !isSpectator) {
@@ -614,7 +615,8 @@
                     }
 
                 } else if (data.type === 'PUBLIC_VOTE_START') {
-                    closeModal('defenseModal');
+                    clearInterval(countdownInterval);
+                    closeAllGameModals();
                     document.getElementById('hostPublicVoteBtn').style.display = 'none';
 
                     if(!isSpectator) {
@@ -648,7 +650,7 @@
                     }
                 } else if (data.type === 'LIAR_GUESS_START') {
                     clearInterval(countdownInterval);
-                    closeModal('publicVoteModal');
+                    closeAllGameModals();
                     if(!isSpectator) {
                         if(data.content === myFullName) {
                             document.getElementById('liarWordInput').value = '';
@@ -660,7 +662,6 @@
                         }
                         startLocalTimer(30, 'timerBoard', "🤔 라이어가 단어 유추 중: ", "종료!");
                     }
-
 
                 } else if (data.type === 'ROUND_END') {
                     clearInterval(countdownInterval);
@@ -674,12 +675,17 @@
                         document.getElementById('resultTitle').innerText = "라운드 종료";
                         document.getElementById('resultContent').innerText = data.content;
 
-                        // 🔥 제가 실수로 지워버렸던 바로 그 버튼들을 다시 살려냈습니다!! 🔥
-                        document.getElementById('nextRoundBtn').style.display = 'block';
-                        document.getElementById('finalRankingBox').style.display = 'none';
-
                         document.getElementById('hostEndMenu').style.display = 'none';
                         document.getElementById('guestEndMenu').style.display = 'none';
+                        document.getElementById('finalRankingBox').style.display = 'none';
+
+                        // 다시 부활한 게스트/방장 계속하기 버튼
+                        if(myId === hostId && !isSpectator) {
+                            document.getElementById('hostEndMenu').style.display = 'flex';
+                        } else {
+                            document.getElementById('guestEndMenu').style.display = 'flex';
+                        }
+
                         document.getElementById('resultModal').style.display = 'flex';
                     }
 

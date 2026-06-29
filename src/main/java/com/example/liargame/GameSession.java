@@ -9,7 +9,7 @@ public class GameSession {
     private String hostId;
     private String roomTitle;
     private String roomPassword;
-    // [버그 수정] 여러 명이 동시에 접속하고 투표해도 서버가 터지지 않도록 스레드 세이프 구조 적용
+
     private Map<String, String> players = new ConcurrentHashMap<>();
     private Map<String, String> spectators = new ConcurrentHashMap<>();
 
@@ -18,7 +18,6 @@ public class GameSession {
     private boolean isPlaying = false;
     private boolean baboMode = false;
 
-    // [버그 수정] 타이머 충돌 기절 방지
     private Map<String, String> votes = new ConcurrentHashMap<>();
     private List<String> turnOrder = new CopyOnWriteArrayList<>();
     private int currentTurnIndex = 0;
