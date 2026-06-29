@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
-    <script>
+    <script th:inline="javascript">
         (function() {
             var mode = localStorage.getItem('isDark');
             var excel = localStorage.getItem('isExcel');
@@ -79,7 +79,8 @@
 
         #timerBoard { background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm); border: 2px dashed var(--border-color); margin-bottom: 15px; font-size: 20px; font-weight: bold; color: var(--panel-border); }
 
-        .campfire-stage { position: relative; width: 100%; height: 380px; background: var(--stage-bg); border-radius: var(--radius-md); margin-bottom: 20px; border: 2px dashed var(--border-color); overflow: hidden; }
+        /* 💡 [신규] 말풍선이 안 짤리도록 모닥불 세로 공간을 500px로 넉넉하게 확장! */
+        .campfire-stage { position: relative; width: 100%; height: 500px; background: var(--stage-bg); border-radius: var(--radius-md); margin-bottom: 20px; border: 2px dashed var(--border-color); overflow: hidden; }
         @keyframes flicker { 0% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px var(--h-orange), 0 0 40px var(--h-red); } 50% { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 30px var(--h-orange), 0 0 50px var(--h-red); } 100% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px var(--h-orange), 0 0 40px var(--h-red); } }
         .center-fire { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; animation: flicker 1.5s infinite alternate; cursor: default; z-index: 5; }
 
@@ -91,7 +92,8 @@
         .spectator-avatar { background: #888; color: white; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 12px; opacity: 0.8; }
         .spectator-label { width: 100%; font-size: 12px; color: var(--text-color); font-weight: bold; margin-bottom: 5px; }
 
-        .speech-bubble { display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: var(--container-bg); border: 2px solid var(--panel-border); color: var(--text-color); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 14px; white-space: normal; width: max-content; max-width: 150px; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        /* 💡 [신규] 말풍선 가로 폭을 250px로 넉넉하게 확장하여 두 줄로 예쁘게 나오게 세팅! */
+        .speech-bubble { display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: var(--container-bg); border: 2px solid var(--panel-border); color: var(--text-color); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 14px; white-space: normal; width: max-content; max-width: 250px; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .speech-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--panel-border) transparent transparent transparent; }
 
         .chat-wrapper { background: var(--stage-bg); border-radius: var(--radius-md); border: 2px solid var(--border-color); display: flex; flex-direction: column; height: 350px; margin-bottom: 20px; }
@@ -304,7 +306,6 @@
     </div>
 </div>
 
-<!-- 💡 [에러 원천 차단] 자바스크립트가 무조건 확실히 연결되도록 th:inline 속성을 추가했습니다. -->
 <script th:inline="javascript">
     var playerColors = {};
     var colorPalette = [
@@ -347,8 +348,6 @@
     });
 
     var stompClient = null;
-
-    // 💡 [에러 원천 차단] 방 코드를 서버로부터 정확하게 받아옵니다.
     var roomId = /*[[${roomId}]]*/ 'error_room';
 
     var myId = Math.random().toString(36).substr(2, 9);
@@ -364,7 +363,6 @@
     var isGamePlaying = false;
     var globalCurrentRound = 1;
 
-    // 💡 [화면 강제 표시] 자바스크립트가 실행되는 즉시 내 이름을 그려넣어 무조건 텍스트가 뜨게 만듭니다.
     document.getElementById('myNameDisplay').innerText = myFullName;
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -489,7 +487,9 @@
                     currentPlayers.forEach(function(player, index) {
                         var angle = (index / currentPlayers.length) * (2 * Math.PI) - (Math.PI / 2);
                         var x = 50 + 35 * Math.cos(angle);
-                        var y = 45 + 30 * Math.sin(angle);
+
+                        // 💡 [신규] 원형 배치를 살짝 아래로 내려 위쪽 공간을 확보합니다 (기존 45 -> 55)
+                        var y = 55 + 30 * Math.sin(angle);
 
                         var playerDiv = document.createElement('div');
                         playerDiv.className = 'player-avatar';

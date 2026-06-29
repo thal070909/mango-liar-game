@@ -228,7 +228,6 @@ public class ChatController {
                             }
                         }
                         sendPlayerListUpdate(session);
-                        // 🔥 중간 탈주 시 타이머와 투표 딜레이를 즉시 해결하는 마법의 메서드 호출
                         handlePlayerLeaveDuringGame(roomId, playerId);
                     }
                 }
@@ -266,18 +265,15 @@ public class ChatController {
                     }
                 }
                 sendPlayerListUpdate(session);
-                // 🔥 중간 탈주 시 타이머와 투표 딜레이를 즉시 해결하는 마법의 메서드 호출
                 handlePlayerLeaveDuringGame(msg.getRoomId(), msg.getPlayerId());
             }
         }
     }
 
-    // 💡 [핵심 방어막] 중간에 탈주한 유저 때문에 게임이 지연되는 것을 원천 차단합니다.
     private void handlePlayerLeaveDuringGame(String roomId, String playerId) {
         GameSession session = sessions.get(roomId);
         if (session == null || !session.isPlaying()) return;
 
-        // 1. 현재 설명 중인 사람이 탈주했다면 즉시 다음 턴으로 스킵
         if (session.getTurnOrder() != null && session.getCurrentTurnIndex() < session.getTurnOrder().size()) {
             String currentTurnId = session.getTurnOrder().get(session.getCurrentTurnIndex());
             if (currentTurnId.equals(playerId)) {
@@ -288,7 +284,6 @@ public class ChatController {
             }
         }
 
-        // 2. 투표 단계에서 탈주자 때문에 모두가 기다리고 있다면 남은 인원만으로 즉시 강제 집계
         if (!session.getVotes().isEmpty() && session.getVotes().size() >= session.getPlayers().size()) {
             session.cancelTimer();
             checkInitialVoteResult(roomId);
@@ -395,6 +390,16 @@ public class ChatController {
             messagingTemplate.convertAndSend("/topic/player/" + playerId, privateMsg);
         }
 
+        // 💡 [신규] 관전자들에게도 진짜 정답을 알려줘서 구경하는 재미를 추가합니다.
+        for (String spectatorId : session.getSpectators().keySet()) {
+            ChatMessage specMsg = new ChatMessage();
+            specMsg.setType(ChatMessage.MessageType.GAME_START);
+            specMsg.setCategory(selectedCategory);
+            specMsg.setContent("👀 관전자 모드 (쉿! 정답입니다)");
+            specMsg.setWord(selectedWord); // 관전자에게 진짜 단어를 전달
+            messagingTemplate.convertAndSend("/topic/player/" + spectatorId, specMsg);
+        }
+
         Timer startTimer = new Timer();
         session.setGameTimer(startTimer);
         startTimer.schedule(new TimerTask() { @Override public void run() { startNextTurn(msg.getRoomId()); } }, 5000);
@@ -459,7 +464,6 @@ public class ChatController {
         String currentTurnId = session.getTurnOrder().get(session.getCurrentTurnIndex());
         String currentTurnName = session.getPlayers().get(currentTurnId);
 
-        // 💡 [버그 완벽 차단] 내 순서가 왔는데 내가 이미 방을 나간 상태(null)라면? -> 즉시 다음 사람으로 스킵!
         if (currentTurnName == null) {
             session.setCurrentTurnIndex(session.getCurrentTurnIndex() + 1);
             startNextTurn(roomId);
@@ -527,7 +531,6 @@ public class ChatController {
             else if (entry.getValue() == maxVotes) { tie = true; }
         }
 
-        // 라이어가 탈주했는지 이름 체크
         String liarFullName = session.getPlayers().get(session.getLiarId());
         if (liarFullName == null) liarFullName = "(탈주한 플레이어)";
 
