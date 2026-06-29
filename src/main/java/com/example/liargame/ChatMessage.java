@@ -75,4 +75,12 @@ public class ChatMessage {
     public void setPlayerList(List<String> playerList) { this.playerList = playerList; }
     public Map<String, String> getSpectatorList() { return spectatorList; }
     public void setSpectatorList(Map<String, String> spectatorList) { this.spectatorList = spectatorList; }
-}
+
+    // 👇 파일 맨 밑 닫히기 직전 위치에 이 코드들을 추가해 주세요.
+    private int maxExplanationTurns; // 최대 설명 턴 (1 또는 2)
+    private Map<String, String> explanations; // 실시간 힌트 저장용 맵
+
+    public int getMaxExplanationTurns() { return maxExplanationTurns; }
+    public void setMaxExplanationTurns(int maxExplanationTurns) { this.maxExplanationTurns = maxExplanationTurns; }
+    public Map<String, String> getExplanations() { return explanations; }
+    public void setExplanations(Map<String, String> explanations) { this.explanations = explanations; }}

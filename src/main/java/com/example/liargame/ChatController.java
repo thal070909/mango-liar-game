@@ -302,6 +302,8 @@ public class ChatController {
         listMsg.setScores(session.getScores());
         listMsg.setPlaying(session.isPlaying());
         listMsg.setRoomTitle(session.getRoomTitle());
+        listMsg.setExplanations(session.getExplanations());
+
         messagingTemplate.convertAndSend("/topic/room/" + session.getRoomId(), listMsg);
     }
 
@@ -318,6 +320,9 @@ public class ChatController {
         session.getPublicVotes().clear();
         session.setAccusedFullName(null);
         session.setBaboMode(msg.isBaboMode());
+        session.setMaxExplanationTurns(msg.getMaxExplanationTurns());
+        session.setCurrentExplanationRound(1);
+        session.getExplanations().clear();
 
         List<String> categories = new ArrayList<>(gameDictionary.keySet());
         String selectedCategory = categories.get(new Random().nextInt(categories.size()));
@@ -374,6 +379,7 @@ public class ChatController {
     public void receiveExplanation(ChatMessage msg) {
         GameSession session = sessions.get(msg.getRoomId());
         if (session != null && session.isPlaying()) {
+            session.getExplanations().put(msg.getSender(), msg.getContent());
             ChatMessage expMsg = new ChatMessage();
             expMsg.setType(ChatMessage.MessageType.EXPLANATION);
             expMsg.setSender(msg.getSender());
@@ -402,10 +408,24 @@ public class ChatController {
         session.cancelTimer();
 
         if (session.getCurrentTurnIndex() >= session.getTurnOrder().size()) {
-            ChatMessage waitMsg = new ChatMessage();
-            waitMsg.setType(ChatMessage.MessageType.WAITING_FOR_VOTE);
-            waitMsg.setContent("👀 모든 설명 종료! 추리 완료 후 방장이 수동으로 투표를 시작하세요.");
-            messagingTemplate.convertAndSend("/topic/room/" + roomId, waitMsg);
+            // 아직 설정한 최대 설명 턴(예: 2턴)에 도달하지 않았다면 한 바퀴 더 돌립니다.
+            if (session.getCurrentExplanationRound() < session.getMaxExplanationTurns()) {
+                session.setCurrentExplanationRound(session.getCurrentExplanationRound() + 1);
+                session.setCurrentTurnIndex(0); // 턴 인덱스 초기화 (처음 사람부터 다시)
+
+                ChatMessage nextRoundMsg = new ChatMessage();
+                nextRoundMsg.setType(ChatMessage.MessageType.SYSTEM);
+                nextRoundMsg.setContent("🔄 모든 플레이어의 " + (session.getCurrentExplanationRound() - 1) + "차 설명이 끝났습니다. [" + session.getCurrentExplanationRound() + "차 설명]을 시작합니다!");
+                messagingTemplate.convertAndSend("/topic/room/" + roomId, nextRoundMsg);
+
+                startNextTurn(roomId); // 2차 설명 회차로 즉시 재진입
+            } else {
+                // 세팅한 턴수가 모두 끝나면 수동 투표 대기 상태로 진입합니다.
+                ChatMessage waitMsg = new ChatMessage();
+                waitMsg.setType(ChatMessage.MessageType.WAITING_FOR_VOTE);
+                waitMsg.setContent("👀 모든 설명 종료! 추리 완료 후 방장이 수동으로 투표를 시작하세요.");
+                messagingTemplate.convertAndSend("/topic/room/" + roomId, waitMsg);
+            }
             return;
         }
 

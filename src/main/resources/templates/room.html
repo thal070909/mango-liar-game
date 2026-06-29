@@ -165,9 +165,17 @@
             <button class="action-btn btn-green" id="spectatorJoinBtn" onclick="spectatorJoin()">🎮 게임 참여하기</button>
         </div>
 
-        <div id="baboModeContainer" style="display: none; margin-top: 15px; text-align: center;">
+        <div id="baboModeContainer" style="display: none; margin-top: 15px; text-align: center; gap: 10px; justify-content: center; align-items: center;">
             <label style="cursor: pointer; font-size: 14px; font-weight: bold; color: var(--panel-border); background: var(--input-bg); padding: 8px 15px; border-radius: var(--radius-sm); border: 2px dashed var(--border-color);">
                 <input type="checkbox" id="baboModeCheck"> 🤪 바보 라이어 모드 켜기
+            </label>
+
+            <label style="font-size: 14px; font-weight: bold; color: var(--panel-border); background: var(--input-bg); padding: 6px 12px; border-radius: var(--radius-sm); border: 2px dashed var(--border-color); display: inline-flex; align-items: center; gap: 5px;">
+                🗣️ 설명 턴 설정:
+                <select id="maxTurnsSelect" style="background: var(--container-bg); color: var(--text-color); border: 1px solid var(--border-color); font-weight: bold; padding: 2px 5px; border-radius: 5px; cursor: pointer;">
+                    <option value="1" selected>1 턴</option>
+                    <option value="2">2 턴</option>
+                </select>
             </label>
         </div>
     </div>
@@ -469,6 +477,10 @@
 
                         playerDiv.appendChild(bubbleDiv);
                         playerDiv.appendChild(document.createTextNode(player));
+                        if (data.explanations && data.explanations[player]) {
+                            bubbleDiv.innerText = data.explanations[player];
+                            bubbleDiv.style.display = 'block';
+                        }
                         stage.appendChild(playerDiv);
                     });
 
@@ -721,7 +733,15 @@
 
     function startGame() {
         var isBabo = document.getElementById('baboModeCheck') ? document.getElementById('baboModeCheck').checked : false;
-        stompClient.send("/app/game.start", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'baboMode': isBabo }));
+        // 👇 드롭다운에서 선택된 턴수(1 또는 2)를 파싱해옵니다.
+        var maxTurns = document.getElementById('maxTurnsSelect') ? parseInt(document.getElementById('maxTurnsSelect').value) : 1;
+
+        stompClient.send("/app/game.start", {}, JSON.stringify({
+            'roomId': roomId,
+            'playerId': myId,
+            'baboMode': isBabo,
+            'maxExplanationTurns': maxTurns // 백엔드로 설정 턴수 전송
+        }));
     }
 
     function hostStartVote() { document.getElementById('hostVoteBtn').style.display = 'none'; stompClient.send("/app/game.startVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }

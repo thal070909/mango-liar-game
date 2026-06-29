@@ -72,4 +72,15 @@ public class GameSession {
         }
     }
     public void setGameTimer(Timer timer) { this.gameTimer = timer; }
+
+    private int maxExplanationTurns = 1; // 기본값 1턴
+    private int currentExplanationRound = 1; // 현재 몇 회차 설명인지 기록
+    private Map<String, String> explanations = new HashMap<>(); // 방 내부 힌트 박제소
+
+    public int getMaxExplanationTurns() { return maxExplanationTurns; }
+    public void setMaxExplanationTurns(int maxExplanationTurns) { this.maxExplanationTurns = maxExplanationTurns; }
+    public int getCurrentExplanationRound() { return currentExplanationRound; }
+    public void setCurrentExplanationRound(int currentExplanationRound) { this.currentExplanationRound = currentExplanationRound; }
+    public Map<String, String> getExplanations() { return explanations; }
+
 }
