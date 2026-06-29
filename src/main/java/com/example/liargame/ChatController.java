@@ -20,9 +20,7 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
     private Map<String, GameSession> sessions = new HashMap<>();
 
-    // 💡 유저님이 구축해놓으신 대형 단어장 코드를 여기에 유지해주세요!!
-    // [업데이트] 방대한 카테고리별 대형 단어장 (총 700여 개 단어 완벽 수록)
-    private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
+       private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
         put("과일/야채", Arrays.asList(
                 "사과", "바나나", "파인애플", "복숭아", "수박", "망고", "딸기", "포도", "멜론", "참외",
                 "자두", "살구", "감", "귤", "오렌지", "자몽", "레몬", "라임", "키위", "블루베리",
@@ -138,6 +136,8 @@ public class ChatController {
             roomInfo.put("playerCount", session.getPlayers().size() + session.getSpectators().size());
             roomInfo.put("isPlaying", session.isPlaying());
             roomInfo.put("totalRounds", session.getTotalRounds());
+            // 비밀번호 설정 유무를 보스 정보로 가공해서 전달
+            roomInfo.put("hasPassword", session.getRoomPassword() != null && !session.getRoomPassword().trim().isEmpty());
             roomList.add(roomInfo);
         }
         return roomList;
@@ -152,6 +152,21 @@ public class ChatController {
             session.setHostId(msg.getPlayerId());
             String title = (msg.getRoomTitle() != null && !msg.getRoomTitle().trim().isEmpty()) ? msg.getRoomTitle() : "망고의 라이어 게임방";
             session.setRoomTitle(title);
+            // 방 생성자가 보낸 비밀번호를 세션에 안착
+            if(msg.getRoomPassword() != null && !msg.getRoomPassword().trim().isEmpty()) {
+                session.setRoomPassword(msg.getRoomPassword().trim());
+            }
+        }
+
+        // [비밀번호 보안 검증 가드]
+        if (session.getRoomPassword() != null && !session.getRoomPassword().isEmpty()) {
+            if (!session.getRoomPassword().equals(msg.getRoomPassword())) {
+                ChatMessage error = new ChatMessage();
+                error.setType(ChatMessage.MessageType.SYSTEM);
+                error.setContent("ERROR_PASSWORD"); // 약속된 오류 키워드 발송
+                messagingTemplate.convertAndSend("/topic/player/" + msg.getPlayerId(), error);
+                return;
+            }
         }
 
         if (session.getPlayers().size() + session.getSpectators().size() >= 10 &&
@@ -322,7 +337,6 @@ public class ChatController {
             privateMsg.setCategory(selectedCategory);
             if (playerId.equals(liarId)) {
                 privateMsg.setContent("당신은 라이어입니다!");
-                privateMsg.setWord(privateMsg.getWord() == null ? liarWord : privateMsg.getWord());
                 privateMsg.setWord(liarWord);
             } else {
                 privateMsg.setContent("당신은 시민입니다.");
@@ -467,7 +481,7 @@ public class ChatController {
             messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), defMsg);
 
             session.cancelTimer();
-            triggerPublicVoteWaitingPhase(msg.getRoomId()); // [핵심수정] 바로 찬반 투표를 안 가고 대기 상태 진입
+            triggerPublicVoteWaitingPhase(msg.getRoomId());
         }
     }
 
@@ -480,7 +494,6 @@ public class ChatController {
         }
     }
 
-    // [신규] 최후변론 종료 후 수동 시작 대기 상태 트리거 로직
     private void triggerPublicVoteWaitingPhase(String roomId) {
         GameSession session = sessions.get(roomId);
         if(session == null) return;
@@ -491,7 +504,6 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/room/" + roomId, waitMsg);
     }
 
-    // [신규] 방장이 수동으로 찬반투표를 여는 API 매핑
     @MessageMapping("/game.startPublicVotePhase")
     public void startPublicVotePhase(ChatMessage msg) {
         GameSession session = sessions.get(msg.getRoomId());
@@ -505,7 +517,6 @@ public class ChatController {
         session.cancelTimer();
         session.getPublicVotes().clear();
 
-        // [신규] 초기 찬반 투표 미투표자 리스트 산출 (용의자 제외 전원)
         List<String> unvotedList = new ArrayList<>();
         for (String pName : session.getPlayers().values()) {
             if (!pName.equals(session.getAccusedFullName())) unvotedList.add(pName);
@@ -515,7 +526,7 @@ public class ChatController {
         ChatMessage publicVoteMsg = new ChatMessage();
         publicVoteMsg.setType(ChatMessage.MessageType.PUBLIC_VOTE_START);
         publicVoteMsg.setContent(session.getAccusedFullName());
-        publicVoteMsg.setTurnPlayerName(unvotedStr); // 미투표자 목록 문자열을 특수 필드에 임시 위임
+        publicVoteMsg.setTurnPlayerName(unvotedStr);
         messagingTemplate.convertAndSend("/topic/room/" + roomId, publicVoteMsg);
 
         Timer pVoteTimer = new Timer();
@@ -530,7 +541,6 @@ public class ChatController {
 
         session.getPublicVotes().put(msg.getSender(), msg.getContent());
 
-        // [신규] 투표 진행 중 변동되는 미투표자 명단 실시간 역추적 계산
         List<String> unvotedList = new ArrayList<>();
         for (String pName : session.getPlayers().values()) {
             if (!pName.equals(session.getAccusedFullName()) && !session.getPublicVotes().containsKey(pName)) {
@@ -542,7 +552,7 @@ public class ChatController {
         ChatMessage updateMsg = new ChatMessage();
         updateMsg.setType(ChatMessage.MessageType.PUBLIC_VOTE_UPDATE);
         updateMsg.setPublicVotes(session.getPublicVotes());
-        updateMsg.setContent(unvotedStr); // content에 가변적인 미투표자 세팅
+        updateMsg.setContent(unvotedStr);
         messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), updateMsg);
 
         if (session.getPublicVotes().size() >= session.getPlayers().size() - 1) {

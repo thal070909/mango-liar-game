@@ -23,7 +23,9 @@ public class ChatMessage {
     private boolean playing;
     private String roomTitle;
     private boolean baboMode;
+    private String roomPassword;
 
+    // 👉 제가 실수로 빼먹었던 바로 그 두 줄입니다! 다시 복구했습니다.
     private Map<String, String> publicVotes;
     private Map<String, Double> scores;
 
@@ -61,6 +63,8 @@ public class ChatMessage {
     public void setRoomTitle(String roomTitle) { this.roomTitle = roomTitle; }
     public boolean isBaboMode() { return baboMode; }
     public void setBaboMode(boolean baboMode) { this.baboMode = baboMode; }
+    public String getRoomPassword() { return roomPassword; }
+    public void setRoomPassword(String roomPassword) { this.roomPassword = roomPassword; }
 
     public Map<String, String> getPublicVotes() { return publicVotes; }
     public void setPublicVotes(Map<String, String> publicVotes) { this.publicVotes = publicVotes; }

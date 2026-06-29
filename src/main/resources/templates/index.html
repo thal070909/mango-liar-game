@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
+    <script>
+        (function() {
+            if(localStorage.getItem('mangoLiarDisplayMode') === 'dark') document.documentElement.classList.add('dark-mode');
+            if(localStorage.getItem('mangoLiarExcelMode') === 'true') document.documentElement.classList.add('excel-mode');
+        })();
+    </script>
     <style>
         :root {
             --bg-color: #FFF9E6;
@@ -18,7 +24,7 @@
             --font-family: 'Malgun Gothic', sans-serif;
         }
 
-        .dark-mode {
+        html.dark-mode {
             --bg-color: #000000;
             --text-color: #FFFFFF;
             --container-bg: #1c1c1e;
@@ -31,7 +37,7 @@
             --btn-gradient: linear-gradient(45deg, #FF9500, #CC7000);
         }
 
-        .excel-mode {
+        html.excel-mode {
             --bg-color: #f3f2f1;
             --container-bg: #ffffff;
             --border-color: #107c41;
@@ -43,7 +49,8 @@
             --btn-gradient: #107c41;
             --font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
         }
-        .excel-mode.dark-mode {
+
+        html.excel-mode.dark-mode {
             --bg-color: #212121;
             --container-bg: #333333;
             --border-color: #217346;
@@ -53,21 +60,17 @@
             --item-bg: #444444;
             --btn-gradient: #217346;
         }
-        .excel-mode .container { border-radius: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
-        .excel-mode input[type="text"], .excel-mode button, .excel-mode .room-list-box { border-radius: 0; }
-        .excel-mode .round-label, .excel-mode .emoji-label { border-radius: 0; border: 1px solid #ccc; }
+
+        html.excel-mode .container { border-radius: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
+        html.excel-mode input[type="text"], html.excel-mode button, html.excel-mode .room-list-box { border-radius: 0; }
+        html.excel-mode .round-label, html.excel-mode .emoji-label { border-radius: 0; border: 1px solid #ccc; }
 
         body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); text-align: center; padding-top: 50px; transition: all 0.3s ease; margin: 0; }
         .container { max-width: 500px; margin: 0 auto; background: var(--container-bg); padding: 40px; border-radius: 30px; border: 4px solid var(--border-color); box-shadow: 0 0 30px var(--shadow-color); transition: all 0.3s ease; position: relative; }
 
         .top-btn-group { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; }
-        .mode-toggle-btn {
-            background: var(--input-bg); border: 2px solid var(--border-color);
-            color: var(--text-color); padding: 6px 12px; border-radius: 20px;
-            font-weight: bold; cursor: pointer; font-size: 13px;
-            display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;
-        }
-        .excel-mode .mode-toggle-btn { border-radius: 0; }
+        .mode-toggle-btn { background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; width: auto; box-sizing: border-box; transition: 0.2s; }
+        html.excel-mode .mode-toggle-btn { border-radius: 0; }
         .mode-toggle-btn:hover { transform: scale(1.05); }
 
         h1 { color: var(--label-color); margin-bottom: 5px; font-size: 32px; transition: 0.2s; }
@@ -87,10 +90,8 @@
         .round-label { flex: 1; text-align: center; font-weight: bold; cursor: pointer; padding: 15px; border-radius: 10px; background: var(--item-bg); border: 2px solid var(--border-color); transition: all 0.2s; color: var(--text-color); font-size: 18px;}
         input[name="rounds"]:checked + .round-label { background: var(--border-color); color: #FFF; border-color: var(--border-color);}
 
-        .btn-submit { width: 100%; padding: 18px; border: none; border-radius: 15px; background: var(--btn-gradient); color: #FFF; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-
-        .btn-join { background: transparent; border: 2px solid var(--label-color); color: var(--label-color); width: 100%; padding: 18px; border-radius: 15px; font-size: 20px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .btn-join:hover { background: var(--label-color); color: #FFF; }
+        .btn-submit { width: 100%; padding: 18px; border: none; border-radius: 15px; background: linear-gradient(45deg, var(--border-color), #FF8C00); color: #553300; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { transform: scale(1.02); box-shadow: 0 5px 15px var(--shadow-color); }
 
         .divider { margin: 30px 0; border-bottom: 2px dashed var(--border-color); transition: 0.2s; }
 
@@ -98,6 +99,7 @@
         .room-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dashed var(--border-color); }
         .room-item:last-child { border-bottom: none; }
         .room-btn { width: auto; padding: 8px 15px; margin: 0; font-size: 14px; background: var(--border-color); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;}
+        .room-btn:hover { background: #FF8C00; }
         .room-btn:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
@@ -105,12 +107,8 @@
 
 <div class="container">
     <div class="top-btn-group">
-        <button class="mode-toggle-btn" onclick="toggleExcelMode()">
-            <span id="excelIcon">📊</span> <span id="excelText">엑셀</span>
-        </button>
-        <button class="mode-toggle-btn" onclick="toggleDisplayMode()">
-            <span id="modeIcon">🌙</span> <span id="modeText">다크</span>
-        </button>
+        <button class="mode-toggle-btn" onclick="toggleExcelMode()">📊 엑셀</button>
+        <button class="mode-toggle-btn" onclick="toggleDisplayMode()"><span id="modeIcon">🌙</span> <span id="modeText">다크</span></button>
     </div>
 
     <h1>🥭 망고의 라이어 게임 🥭</h1>
@@ -138,7 +136,12 @@
 
     <div class="form-group">
         <label>📛 방 제목 입력 (방장용)</label>
-        <input type="text" id="roomTitleInput" placeholder="방 제목을 설정해보세요 (기본: 망고의 라이어 게임방)">
+        <input type="text" id="roomTitleInput" placeholder="방 제목을 설정해보세요">
+    </div>
+
+    <div class="form-group">
+        <label>🔒 방 비밀번호 설정 (선택)</label>
+        <input type="text" id="roomPasswordInput" placeholder="비밀번호 설정 (미입력 시 공개방으로 개설)">
     </div>
 
     <div class="form-group">
@@ -157,14 +160,6 @@
     <div class="divider"></div>
 
     <div class="form-group">
-        <label>🔑 초대 코드로 입장</label>
-        <input type="text" id="roomCode" placeholder="초대 코드를 입력하세요">
-        <button class="btn-join" onclick="joinRoom()">코드로 입장하기</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="form-group">
         <label>🔥 현재 참여 가능한 방 목록</label>
         <div id="roomListContainer" class="room-list-box">
             <div style="text-align:center; color:#888;">방 목록을 불러오는 중...</div>
@@ -173,36 +168,39 @@
 </div>
 
 <script>
-    function applySavedMode() {
-        var savedMode = localStorage.getItem('mangoLiarDisplayMode');
-        var savedExcel = localStorage.getItem('mangoLiarExcelMode');
-        if (savedMode === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('modeIcon').innerText = '☀️';
-            document.getElementById('modeText').innerText = '라이트';
-        } else {
-            document.body.classList.remove('dark-mode');
-            document.getElementById('modeIcon').innerText = '🌙';
-            document.getElementById('modeText').innerText = '다크';
+    function updateToggleButtons() {
+        var isDark = document.documentElement.classList.contains('dark-mode');
+        var modeIcon = document.getElementById('modeIcon');
+        var modeText = document.getElementById('modeText');
+        if(modeIcon && modeText) {
+            modeIcon.innerText = isDark ? '☀️' : '🌙';
+            modeText.innerText = isDark ? '라이트' : '다크';
         }
-        if (savedExcel === 'true') document.body.classList.add('excel-mode');
-        else document.body.classList.remove('excel-mode');
     }
 
     function toggleDisplayMode() {
-        if (document.body.classList.contains('dark-mode')) localStorage.setItem('mangoLiarDisplayMode', 'light');
-        else localStorage.setItem('mangoLiarDisplayMode', 'dark');
-        applySavedMode();
+        if (document.documentElement.classList.contains('dark-mode')) {
+            document.documentElement.classList.remove('dark-mode');
+            localStorage.setItem('mangoLiarDisplayMode', 'light');
+        } else {
+            document.documentElement.classList.add('dark-mode');
+            localStorage.setItem('mangoLiarDisplayMode', 'dark');
+        }
+        updateToggleButtons();
     }
 
     function toggleExcelMode() {
-        if (document.body.classList.contains('excel-mode')) localStorage.setItem('mangoLiarExcelMode', 'false');
-        else localStorage.setItem('mangoLiarExcelMode', 'true');
-        applySavedMode();
+        if (document.documentElement.classList.contains('excel-mode')) {
+            document.documentElement.classList.remove('excel-mode');
+            localStorage.setItem('mangoLiarExcelMode', 'false');
+        } else {
+            document.documentElement.classList.add('excel-mode');
+            localStorage.setItem('mangoLiarExcelMode', 'true');
+        }
     }
 
     window.onload = function() {
-        applySavedMode();
+        updateToggleButtons();
 
         fetch('/api/rooms')
             .then(res => res.json())
@@ -214,7 +212,8 @@
                 } else {
                     data.forEach(function(room) {
                         var isFull = room.playerCount >= 10;
-                        var status = room.isPlaying ? '<span style="color:#ff4500">[게임중]</span>' : (isFull ? '<span style="color:gray">[만원]</span>' : '<span style="color:#32CD32">[대기중]</span>');
+                        // [비밀방 상태 레이블 다이내믹 변경 연동]
+                        var status = room.isPlaying ? '<span style="color:#ff4500">[게임중]</span>' : (isFull ? '<span style="color:gray">[만원]</span>' : (room.hasPassword ? '<span style="color:#FF9500">[🔒비밀방]</span>' : '<span style="color:#32CD32">[대기중]</span>'));
                         var btnDisabled = isFull ? 'disabled' : '';
 
                         container.innerHTML += `
@@ -223,7 +222,7 @@
                                     <strong style="font-size:18px; color: var(--panel-border);">${room.roomTitle}</strong> ${status}<br>
                                     <span style="font-size:14px; opacity: 0.8;">코드: ${room.roomId} | 인원: ${room.playerCount}/10 | ${room.totalRounds}라운드제</span>
                                 </div>
-                                <button class="room-btn" onclick="quickJoin('${room.roomId}')" ${btnDisabled}>입장하기</button>
+                                <button class="room-btn" onclick="quickJoin('${room.roomId}', ${room.hasPassword})" ${btnDisabled}>입장하기</button>
                             </div>
                         `;
                     });
@@ -231,13 +230,32 @@
             });
     };
 
-    function quickJoin(code) { document.getElementById('roomCode').value = code; joinRoom(); }
+    // [신규 가공] 목록 클릭 시 다이내믹 인터셉트 조인 가드 함수
+    function quickJoin(code, hasPassword) {
+        var nickname = document.getElementById('myNickname').value.trim();
+        var emoji = document.querySelector('input[name="emoji"]:checked').value;
+
+        if(!nickname || nickname.length > 2) { alert('닉네임은 최대 2글자까지만 입력해주세요!'); return; }
+
+        var enteredPassword = "";
+        if (hasPassword) {
+            enteredPassword = prompt("🔒 비밀방입니다. 비밀번호를 입력해주세요:");
+            if (enteredPassword === null) return; // 취소 처리 가드
+        }
+
+        sessionStorage.setItem('liarGameNickname', nickname);
+        sessionStorage.setItem('liarGameEmoji', emoji);
+        sessionStorage.setItem('liarGameRounds', "0");
+        sessionStorage.setItem('liarGameRoomPassword', enteredPassword); // 입력값 스토리지 주입
+        window.location.href = '/room/' + code;
+    }
 
     function saveInfo() {
         var nickname = document.getElementById('myNickname').value.trim();
         var emoji = document.querySelector('input[name="emoji"]:checked').value;
         var rounds = document.querySelector('input[name="rounds"]:checked').value;
         var title = document.getElementById('roomTitleInput').value.trim() || "망고의 라이어 게임방";
+        var password = document.getElementById('roomPasswordInput').value.trim();
 
         if(!nickname || nickname.length > 2) { alert('닉네임은 최대 2글자까지만 입력해주세요!'); return false; }
 
@@ -245,21 +263,8 @@
         sessionStorage.setItem('liarGameEmoji', emoji);
         sessionStorage.setItem('liarGameRounds', rounds);
         sessionStorage.setItem('liarGameRoomTitle', title);
+        sessionStorage.setItem('liarGameRoomPassword', password); // 생성 스토리지 주입
         return true;
-    }
-
-    function joinRoom() {
-        var nickname = document.getElementById('myNickname').value.trim();
-        var roomCode = document.getElementById('roomCode').value.trim();
-        var emoji = document.querySelector('input[name="emoji"]:checked').value;
-
-        if(!nickname || nickname.length > 2) { alert('닉네임은 최대 2글자까지만 입력해주세요!'); return; }
-        if(!roomCode) { alert('방 코드를 입력해주세요!'); return; }
-
-        sessionStorage.setItem('liarGameNickname', nickname);
-        sessionStorage.setItem('liarGameEmoji', emoji);
-        sessionStorage.setItem('liarGameRounds', "0");
-        window.location.href = '/room/' + roomCode;
     }
 </script>
 </body>

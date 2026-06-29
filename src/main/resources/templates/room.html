@@ -1,8 +1,16 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http:// th.org">
 <head>
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
+    <script>
+        (function() {
+            var mode = localStorage.getItem('mangoLiarDisplayMode');
+            var excel = localStorage.getItem('mangoLiarExcelMode');
+            if (mode === 'dark') document.documentElement.classList.add('dark-mode');
+            if (excel === 'true') document.documentElement.classList.add('excel-mode');
+        })();
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -17,9 +25,21 @@
             --panel-border: #FF8C00;
             --btn-gradient: linear-gradient(45deg, #FFD700, #FF8C00);
             --font-family: 'Malgun Gothic', sans-serif;
+
+            --h-green: #32CD32;
+            --h-red: #FF4500;
+            --h-blue: #1E90FF;
+            --h-purple: #8A2BE2;
+            --h-orange: #FF8C00;
+
+            --radius-lg: 25px;
+            --radius-md: 20px;
+            --radius-sm: 10px;
+            --btn-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+            --modal-shadow: 0 0 30px rgba(255, 140, 0, 0.3);
         }
 
-        .dark-mode {
+        html.dark-mode {
             --bg-color: #000000;
             --text-color: #FFFFFF;
             --container-bg: #1c1c1e;
@@ -29,9 +49,18 @@
             --shadow-color: rgba(255, 149, 0, 0.15);
             --panel-border: #FF9500;
             --btn-gradient: linear-gradient(45deg, #FF9500, #CC7000);
+
+            --h-green: #2E8B57;
+            --h-red: #CC3700;
+            --h-blue: #1C86EE;
+            --h-purple: #7A28CB;
+            --h-orange: #E67E22;
+
+            --btn-shadow: 0 5px 15px rgba(255, 149, 0, 0.3);
+            --modal-shadow: 0 0 40px rgba(255, 149, 0, 0.2);
         }
 
-        .excel-mode {
+        html.excel-mode {
             --bg-color: #f3f2f1;
             --container-bg: #ffffff;
             --border-color: #107c41;
@@ -41,8 +70,21 @@
             --panel-border: #107c41;
             --btn-gradient: #107c41;
             --font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+
+            --h-green: #107c41;
+            --h-red: #a4262c;
+            --h-blue: #0078d4;
+            --h-purple: #6264a7;
+            --h-orange: #d83b01;
+
+            --radius-lg: 0px;
+            --radius-md: 0px;
+            --radius-sm: 0px;
+            --btn-shadow: none;
+            --modal-shadow: 5px 5px 15px rgba(0,0,0,0.2);
         }
-        .excel-mode.dark-mode {
+
+        html.excel-mode.dark-mode {
             --bg-color: #212121;
             --container-bg: #333333;
             --border-color: #217346;
@@ -50,75 +92,87 @@
             --input-bg: #444444;
             --panel-border: #217346;
             --btn-gradient: #217346;
-        }
 
-        .excel-mode .container, .excel-mode .scoreboard-panel { border-radius: 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
-        .excel-mode .player-avatar { border-radius: 0; border: 1px solid #ccc; }
-        .excel-mode .chat-wrapper, .excel-mode .campfire-stage { border-radius: 0; }
-        .excel-mode button, .excel-mode input, .excel-mode .modal-box { border-radius: 0; }
+            --h-green: #217346;
+            --h-red: #d13438;
+            --h-blue: #2b88d8;
+            --h-purple: #8b8cc7;
+            --h-orange: #ea4300;
+            --modal-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+        }
 
         body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; transition: all 0.3s ease;}
         .main-wrapper { display: flex; max-width: 1200px; width: 100%; gap: 20px; }
-        .container { flex: 3; background: var(--container-bg); padding: 30px; border-radius: 25px; border: 4px solid var(--border-color); box-shadow: 0 0 30px var(--shadow-color); text-align: center; position: relative; transition: all 0.3s ease; }
+        .container { flex: 3; background: var(--container-bg); padding: 30px; border-radius: var(--radius-lg); border: 4px solid var(--border-color); box-shadow: 0 0 30px var(--shadow-color); text-align: center; position: relative; transition: all 0.3s ease; }
 
-        .scoreboard-panel { flex: 1; background: var(--container-bg); padding: 20px; border-radius: 25px; border: 4px solid var(--panel-border); box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: fit-content; transition: all 0.3s ease;}
+        .scoreboard-panel { flex: 1; background: var(--container-bg); padding: 20px; border-radius: var(--radius-lg); border: 4px solid var(--panel-border); box-shadow: 0 0 30px var(--shadow-color); display: flex; flex-direction: column; height: fit-content; transition: all 0.3s ease;}
         .score-title { color: var(--panel-border); font-size: 22px; font-weight: bold; border-bottom: 2px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
         .score-list { list-style: none; padding: 0; margin: 0; font-size: 18px; font-weight: bold; }
-        .score-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
-        .score-point { color: #FF4500; }
+        .score-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-color); }
+        .score-point { color: var(--h-red); }
 
-        .score-guide { margin-top: 30px; background: var(--stage-bg); border: 2px solid var(--border-color); border-radius: 10px; padding: 15px; text-align: left; font-size: 14px; }
+        .score-guide { margin-top: 30px; background: var(--stage-bg); border: 2px solid var(--border-color); border-radius: var(--radius-sm); padding: 15px; text-align: left; font-size: 14px; }
         .score-guide h4 { margin: 0 0 15px 0; color: var(--panel-border); text-align: center; }
         .guide-list { list-style: none; padding: 0; margin: 0; line-height: 1.8; }
         .guide-li { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--border-color); padding: 7px 0; }
         .guide-li:last-child { border-bottom: none; }
         .guide-text { flex: 1; text-align: left; padding-right: 10px; }
-        .guide-point { color: #FF4500; font-weight: bold; white-space: nowrap; }
+        .guide-point { color: var(--h-red); font-weight: bold; white-space: nowrap; }
 
         h1 { color: var(--panel-border); margin-bottom: 10px; font-size: 35px; text-shadow: 2px 2px 0px var(--bg-color); }
-        .room-code-box { font-size: 16px; font-weight: bold; background: var(--border-color); color: #553300; padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+        .room-code-box { font-size: 16px; font-weight: bold; background: var(--border-color); color: var(--bg-color); padding: 10px 20px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 20px; }
 
-        #timerBoard { background: var(--bg-color); padding: 10px; border-radius: 10px; border: 2px dashed var(--border-color); margin-bottom: 15px; font-size: 20px; font-weight: bold; color: var(--panel-border); }
+        #timerBoard { background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm); border: 2px dashed var(--border-color); margin-bottom: 15px; font-size: 20px; font-weight: bold; color: var(--panel-border); }
 
-        .campfire-stage { position: relative; width: 100%; height: 380px; background: var(--stage-bg); border-radius: 20px; margin-bottom: 20px; border: 2px dashed var(--border-color); overflow: hidden; }
-        @keyframes flicker { 0% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ff6600, 0 0 40px #ff0000; } 50% { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 30px #ff9900, 0 0 50px #ff3300; } 100% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ff6600, 0 0 40px #ff0000; } }
+        .campfire-stage { position: relative; width: 100%; height: 380px; background: var(--stage-bg); border-radius: var(--radius-md); margin-bottom: 20px; border: 2px dashed var(--border-color); overflow: hidden; }
+        @keyframes flicker { 0% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px var(--h-orange), 0 0 40px var(--h-red); } 50% { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 30px var(--h-orange), 0 0 50px var(--h-red); } 100% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px var(--h-orange), 0 0 40px var(--h-red); } }
         .center-fire { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; animation: flicker 1.5s infinite alternate; cursor: default; z-index: 5; }
 
-        .player-avatar { position: absolute; transform: translate(-50%, -50%); background: var(--border-color); padding: 6px 12px; border-radius: 20px; border: 2px solid var(--panel-border); color: #553300; font-weight: bold; font-size: 13px; white-space: nowrap; box-shadow: 0 5px 10px rgba(0,0,0,0.1); z-index: 10; transition: all 0.3s ease; }
-        .active-turn { background: #FF4500 !important; color: #FFF !important; border: 3px solid #FFF !important; box-shadow: 0 0 20px #FF4500; transform: translate(-50%, -50%) scale(1.2); z-index: 20; }
+        .player-avatar { position: absolute; transform: translate(-50%, -50%); background: var(--border-color); padding: 6px 12px; border-radius: var(--radius-md); border: 2px solid var(--panel-border); color: var(--bg-color); font-weight: bold; font-size: 13px; white-space: nowrap; box-shadow: 0 5px 10px rgba(0,0,0,0.1); z-index: 10; transition: all 0.3s ease; }
+        .active-turn { background: var(--h-red) !important; color: #FFF !important; border: 3px solid #FFF !important; box-shadow: 0 0 20px var(--h-red); transform: translate(-50%, -50%) scale(1.2); z-index: 20; }
+        html.excel-mode .active-turn { box-shadow: none !important; border: 3px solid var(--h-red) !important; color: var(--container-bg) !important;}
 
-        .spectator-box { position: absolute; bottom: 10px; right: 10px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 10px; text-align: right; max-width: 40%; display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
-        .spectator-avatar { background: #888; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; opacity: 0.8; }
+        .spectator-box { position: absolute; bottom: 10px; right: 10px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: var(--radius-sm); text-align: right; max-width: 40%; display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+        .spectator-avatar { background: #888; color: white; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 12px; opacity: 0.8; }
         .spectator-label { width: 100%; font-size: 12px; color: var(--text-color); font-weight: bold; margin-bottom: 5px; }
 
-        .speech-bubble { display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #FFF; border: 2px solid var(--panel-border); color: #333; padding: 8px 12px; border-radius: 15px; font-size: 14px; white-space: normal; width: max-content; max-width: 150px; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .speech-bubble { display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: var(--container-bg); border: 2px solid var(--panel-border); color: var(--text-color); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 14px; white-space: normal; width: max-content; max-width: 150px; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .speech-bubble::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--panel-border) transparent transparent transparent; }
 
-        .chat-wrapper { background: var(--stage-bg); border-radius: 15px; border: 2px solid var(--border-color); display: flex; flex-direction: column; height: 350px; margin-bottom: 20px; }
-        .section-title { font-size: 16px; color: var(--panel-border); border-bottom: 1px solid var(--border-color); padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 13px 13px 0 0; }
+        .chat-wrapper { background: var(--stage-bg); border-radius: var(--radius-md); border: 2px solid var(--border-color); display: flex; flex-direction: column; height: 350px; margin-bottom: 20px; }
+        .section-title { font-size: 16px; color: var(--panel-border); border-bottom: 1px solid var(--border-color); padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
         #chatArea { flex: 1; padding: 15px; overflow-y: auto; text-align: left; }
-        .input-group { display: flex; padding: 10px; background: var(--border-color); border-radius: 0 0 13px 13px; }
-        .input-group input { flex: 1; padding: 12px; border-radius: 5px; border: none; background: var(--container-bg); color: var(--text-color); font-size: 15px; margin-right: 10px; }
-        .input-group button { width: 80px; padding: 12px; border: none; border-radius: 5px; background: var(--panel-border); color: white; font-weight: bold; cursor: pointer; }
+        .input-group { display: flex; padding: 10px; background: var(--border-color); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+        .input-group input { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none; background: var(--container-bg); color: var(--text-color); font-size: 15px; margin-right: 10px; }
+        .input-group button { width: 80px; padding: 12px; border: none; border-radius: var(--radius-sm); background: var(--panel-border); color: white; font-weight: bold; cursor: pointer; }
 
-        .sys-msg { color: #D2691E; text-align: center; margin: 10px 0; font-weight: bold; }
+        .sys-msg { color: var(--panel-border); text-align: center; margin: 10px 0; font-weight: bold; }
         .chat-msg { margin: 6px 0; }
         .sender-name { color: var(--panel-border); font-weight: bold; margin-right: 5px; }
 
-        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 15px; background: var(--btn-gradient); color: #FFF; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px var(--shadow-color); transition: 0.3s; display: none; }
+        .action-btn { flex: 1; padding: 15px; border: none; border-radius: var(--radius-sm); background: var(--btn-gradient); color: #FFF; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: var(--btn-shadow); transition: 0.3s; display: none; }
         .action-btn:hover { opacity: 0.9; }
 
+        .btn-green { background: var(--h-green) !important; }
+        .btn-red { background: var(--h-red) !important; }
+        .btn-blue { background: var(--h-blue) !important; }
+        .btn-purple { background: var(--h-purple) !important; }
+        .btn-orange { background: var(--h-orange) !important; }
+        .btn-gray { background: #888 !important; }
+
         .top-btn-group { position: absolute; top: 20px; right: 25px; display: flex; gap: 8px; }
-        .leave-btn { background: #FF4500; color: white; border: none; padding: 8px 14px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .room-toggle-btn { background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-color); padding: 8px 14px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+        .leave-btn { background: var(--h-red); color: white; border: none; padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; }
+        .room-toggle-btn { background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-color); padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-box { background: var(--container-bg); color: var(--text-color); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 0 30px var(--border-color); min-width: 350px; }
-        .vote-board { margin: 20px 0; padding: 15px; background: #333; color: white; border-radius: 10px; text-align: left; max-height: 200px; overflow-y: auto; }
-        .vote-item { padding: 8px 0; border-bottom: 1px dashed #666; font-size: 16px; font-weight: bold; }
-        .vote-kill { color: #FF6347; }
-        .vote-save { color: #1E90FF; }
-        .liar-input { width: 80%; padding: 15px; font-size: 20px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--text-color); border-radius: 10px; margin: 20px 0; text-align: center;}
+        .modal-box { background: var(--container-bg); color: var(--text-color); padding: 40px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--modal-shadow); border: 4px solid var(--border-color); min-width: 350px; }
+        html.excel-mode .modal-box { border-width: 2px; }
+
+        .vote-board { margin: 20px 0; padding: 15px; background: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color); border-radius: var(--radius-sm); text-align: left; max-height: 200px; overflow-y: auto; }
+        .vote-item { padding: 8px 0; border-bottom: 1px dashed var(--border-color); font-size: 16px; font-weight: bold; }
+        .vote-kill { color: var(--h-red); }
+        .vote-save { color: var(--h-blue); }
+        .liar-input { width: 80%; padding: 15px; font-size: 20px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--text-color); border-radius: var(--radius-sm); margin: 20px 0; text-align: center;}
     </style>
 </head>
 <body>
@@ -126,12 +180,8 @@
 <div class="main-wrapper">
     <div class="container">
         <div class="top-btn-group">
-            <button class="room-toggle-btn" onclick="toggleExcelMode()">
-                <span id="excelIcon">📊</span> <span id="excelText">엑셀</span>
-            </button>
-            <button class="room-toggle-btn" onclick="toggleDisplayMode()">
-                <span id="modeIcon">🌙</span> <span id="modeText">다크</span>
-            </button>
+            <button class="room-toggle-btn" onclick="toggleExcelMode()">📊 엑셀</button>
+            <button class="room-toggle-btn" onclick="toggleDisplayMode()">🌙 모드</button>
             <button class="leave-btn" onclick="leaveRoom()">🚪 나가기</button>
         </div>
 
@@ -155,13 +205,13 @@
 
         <div style="display: flex; gap: 15px;">
             <button class="action-btn" id="startBtn" onclick="startGame()">게임 시작 (방장)</button>
-            <button class="action-btn" id="hostVoteBtn" onclick="hostStartVote()" style="background:#FF4500;">🚨 라이어 투표 시작 (방장)</button>
-            <button class="action-btn" id="hostPublicVoteBtn" onclick="hostStartPublicVote()" style="background:#1E90FF;">🚨 찬반 투표 시작 (방장)</button>
-            <button class="action-btn" id="spectatorJoinBtn" onclick="spectatorJoin()" style="background:#32CD32;">🎮 게임 참여하기</button>
+            <button class="action-btn btn-red" id="hostVoteBtn" onclick="hostStartVote()">🚨 라이어 투표 시작 (방장)</button>
+            <button class="action-btn btn-blue" id="hostPublicVoteBtn" onclick="hostStartPublicVote()">🚨 찬반 투표 시작 (방장)</button>
+            <button class="action-btn btn-green" id="spectatorJoinBtn" onclick="spectatorJoin()">🎮 게임 참여하기</button>
         </div>
 
         <div id="baboModeContainer" style="display: none; margin-top: 15px; text-align: center;">
-            <label style="cursor: pointer; font-size: 14px; font-weight: bold; color: var(--panel-border); background: var(--input-bg); padding: 8px 15px; border-radius: 10px; border: 2px dashed var(--border-color);">
+            <label style="cursor: pointer; font-size: 14px; font-weight: bold; color: var(--panel-border); background: var(--input-bg); padding: 8px 15px; border-radius: var(--radius-sm); border: 2px dashed var(--border-color);">
                 <input type="checkbox" id="baboModeCheck"> 🤪 바보 라이어 모드 켜기
             </label>
         </div>
@@ -170,8 +220,9 @@
     <div class="scoreboard-panel">
         <div class="score-title">🏆 실시간 점수판</div>
         <ul class="score-list" id="scoreListUi"></ul>
+
         <div class="score-guide">
-            <h4>📊 점수 획득 기준</h4>
+            <h4 style="color: var(--panel-border);">📊 점수 획득 기준</h4>
             <ul class="guide-list">
                 <li class="guide-li">
                     <span class="guide-text"><strong>시민:</strong> 라이어 1차 지목 성공</span>
@@ -194,74 +245,73 @@
     </div>
 </div>
 
-<!-- 모달 창 모음 -->
 <div id="explainModal" class="modal">
-    <div class="modal-box" style="box-shadow: 0 0 30px #32CD32;">
-        <h2 style="margin-top: 0; color: #32CD32;">🗣️ 내 차례입니다!</h2>
+    <div class="modal-box" style="border-color: var(--h-green);">
+        <h2 style="margin-top: 0; color: var(--h-green);">🗣️ 내 차례입니다!</h2>
         <p style="font-size: 18px;">단어에 대해 짧게 설명해주세요.<br>(작성 완료 시 턴이 즉시 종료됩니다)</p>
         <input type="text" id="explainInput" class="liar-input" placeholder="이것은... 과일입니다!" onkeypress="if(event.keyCode==13) submitExplanation()">
-        <p style="color: #FF0000; font-weight: bold; font-size:20px;" id="explainTimerDisplay">30초</p>
-        <button onclick="submitExplanation()" class="action-btn" style="display:block; width:100%; background: #32CD32; color: white;">설명 끝! (턴 넘기기)</button>
+        <p style="color: var(--h-red); font-weight: bold; font-size:20px;" id="explainTimerDisplay">30초</p>
+        <button onclick="submitExplanation()" class="action-btn btn-green" style="display:block; width:100%;">설명 끝! (턴 넘기기)</button>
     </div>
 </div>
 
 <div id="wordModal" class="modal">
     <div class="modal-box">
         <h2 id="modalContent" style="margin: 0; color: var(--panel-border); font-size: 30px;"></h2>
-        <div style="margin-top: 15px; font-size: 20px; font-weight: bold; background: var(--bg-color); padding: 10px; border-radius: 10px;">
+        <div style="margin-top: 15px; font-size: 20px; font-weight: bold; background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm);">
             📝 주제: <span id="gameCategory" style="color: var(--panel-border);"></span>
         </div>
-        <p style="font-size: 50px; font-weight: bold; margin: 30px 0;">[ <span id="gameWord" style="color:#e60000;"></span> ]</p>
+        <p style="font-size: 50px; font-weight: bold; margin: 30px 0; color: var(--h-red);">[ <span id="gameWord"></span> ]</p>
         <button onclick="closeModal('wordModal')" class="action-btn" style="display:block; width:100%;">확인</button>
     </div>
 </div>
 
 <div id="voteModal" class="modal">
-    <div class="modal-box" style="box-shadow: 0 0 30px #FF6347;">
-        <h2 style="margin-top: 0; color: #FF4500;">누가 라이어일까요?</h2>
-        <p style="color: #FF4500; font-weight: bold;" id="voteTimerDisplay">남은 시간: 30초</p>
+    <div class="modal-box" style="border-color: var(--h-red);">
+        <h2 style="margin-top: 0; color: var(--h-red);">누가 라이어일까요?</h2>
+        <p style="color: var(--h-red); font-weight: bold;" id="voteTimerDisplay">남은 시간: 30초</p>
         <div id="voteRadioList" style="margin: 20px 0; text-align:left; max-height: 250px; overflow-y: auto;"></div>
-        <button onclick="submitVote()" class="action-btn" style="display:block; width:100%; background: #FF6347; color: white;">지목하기</button>
+        <button onclick="submitVote()" class="action-btn btn-red" style="display:block; width:100%;">지목하기</button>
     </div>
 </div>
 
 <div id="defenseModal" class="modal">
-    <div class="modal-box" style="box-shadow: 0 0 40px #FFD700;">
-        <h2 style="margin-top: 0; color: #FF8C00;">최후 변론 시간!</h2>
+    <div class="modal-box">
+        <h2 style="margin-top: 0; color: var(--h-orange);">최후 변론 시간!</h2>
         <h3 id="accusedNameDisplay" style="font-size:24px;"></h3>
         <p style="font-size: 18px; opacity:0.8;">용의자는 결백을 증명하세요!</p>
         <input type="text" id="defenseInput" class="liar-input" placeholder="억울합니다! 저는 시민입니다!" onkeypress="if(event.keyCode==13) submitDefense()" style="display:none;">
-        <p style="color: #FF0000; font-weight: bold; font-size:24px;" id="defenseTimerDisplay">30초</p>
-        <button id="defenseSubmitBtn" onclick="submitDefense()" class="action-btn" style="display:none; width:100%; margin-top:10px; background:#FF8C00; color:white;">변론 외치기!</button>
-        <button id="defenseSkipBtn" onclick="skipDefense()" class="action-btn" style="display:none; width:100%; margin-top:10px; background:#888; color:white;">할 말 없음 (스킵)</button>
+        <p style="color: var(--h-red); font-weight: bold; font-size:24px;" id="defenseTimerDisplay">30초</p>
+        <button id="defenseSubmitBtn" onclick="submitDefense()" class="action-btn btn-orange" style="display:none; width:100%; margin-top:10px;">변론 외치기!</button>
+        <button id="defenseSkipBtn" onclick="skipDefense()" class="action-btn btn-gray" style="display:none; width:100%; margin-top:10px;">할 말 없음 (스킵)</button>
     </div>
 </div>
 
 <div id="publicVoteModal" class="modal">
-    <div class="modal-box" style="box-shadow: 0 0 40px #1E90FF; min-width: 450px;">
-        <h2 style="margin-top: 0; color: #1E90FF;">처형 찬반 투표</h2>
-        <h3 style="font-size:20px;">[ <span id="publicAccusedDisplay" style="color:#FF4500"></span> ] 님을 처형하시겠습니까?</h3>
+    <div class="modal-box" style="border-color: var(--h-blue); min-width: 450px;">
+        <h2 style="margin-top: 0; color: var(--h-blue);">처형 찬반 투표</h2>
+        <h3 style="font-size:20px;">[ <span id="publicAccusedDisplay" style="color:var(--h-red)"></span> ] 님을 처형하시겠습니까?</h3>
 
-        <p style="font-size:14px; opacity:0.85; background:var(--bg-color); padding:8px; border-radius:8px; text-align:left;">
-            ⏳ <strong>아직 투표 안 한 사람 :</strong> <span id="unvotedListDisplay" style="color:#FF4500; font-weight:bold;">-</span>
+        <p style="font-size:14px; background:var(--bg-color); padding:8px; border-radius:var(--radius-sm); text-align:left; border: 1px solid var(--border-color);">
+            ⏳ <strong>아직 투표 안 한 사람 :</strong> <span id="unvotedListDisplay" style="color:var(--h-red); font-weight:bold;">-</span>
         </p>
 
         <div style="display:flex; gap:10px; margin:20px 0;">
-            <button onclick="submitPublicVote('KILL')" class="action-btn" id="btnKill" style="display:block; background:#FF4500; color:white;">🔴 찬성 (죽인다)</button>
-            <button onclick="submitPublicVote('SAVE')" class="action-btn" id="btnSave" style="display:block; background:#1E90FF; color:white;">🔵 반대 (살린다)</button>
+            <button onclick="submitPublicVote('KILL')" class="action-btn btn-red" id="btnKill" style="display:block;">🔴 찬성 (죽인다)</button>
+            <button onclick="submitPublicVote('SAVE')" class="action-btn btn-blue" id="btnSave" style="display:block;">🔵 반대 (살린다)</button>
         </div>
-        <h4 style="margin: 0; text-align:left; color:#1E90FF;">실시간 투표 현황</h4>
+        <h4 style="margin: 0; text-align:left; color:var(--h-blue);">실시간 투표 현황</h4>
         <div id="publicVoteBoard" class="vote-board"></div>
     </div>
 </div>
 
 <div id="liarGuessModal" class="modal">
-    <div class="modal-box" style="box-shadow: 0 0 40px #8A2BE2;">
-        <h2 style="margin-top: 0; color: #8A2BE2;">정체를 들켰습니다!</h2>
+    <div class="modal-box" style="border-color: var(--h-purple);">
+        <h2 style="margin-top: 0; color: var(--h-purple);">정체를 들켰습니다!</h2>
         <p style="font-size: 18px; font-weight:bold;">시민들이 대화했던 단어를 유추하여 적어주세요!</p>
         <input type="text" id="liarWordInput" class="liar-input" placeholder="정답 입력 (예: 사과)">
-        <p style="color: #FF0000; font-weight: bold; font-size:20px;" id="guessTimerDisplay">30초 남음</p>
-        <button onclick="submitLiarGuess()" class="action-btn" style="display:block; width:100%; background: #8A2BE2; color: white;">정답 외치기!</button>
+        <p style="color: var(--h-red); font-weight: bold; font-size:20px;" id="guessTimerDisplay">30초 남음</p>
+        <button onclick="submitLiarGuess()" class="action-btn btn-purple" style="display:block; width:100%;">정답 외치기!</button>
     </div>
 </div>
 
@@ -269,27 +319,62 @@
     <div class="modal-box">
         <h2>라이어가 단어를 유추 중입니다...</h2>
         <p>과연 라이어가 단어를 맞추고 역전승을 할 수 있을까요? 🤔</p>
-        <p style="color: #FF0000; font-weight: bold; font-size:20px;" id="waitTimerDisplay">30초 남음</p>
+        <p style="color: var(--h-red); font-weight: bold; font-size:20px;" id="waitTimerDisplay">30초 남음</p>
     </div>
 </div>
 
 <div id="resultModal" class="modal">
     <div class="modal-box" style="min-width: 400px;">
-        <h2 style="margin: 0; color: #FF8C00; font-size: 35px;" id="resultTitle">게임 종료</h2>
+        <h2 style="margin: 0; color: var(--panel-border); font-size: 35px;" id="resultTitle">게임 종료</h2>
         <p id="resultContent" style="font-size: 20px; font-weight: bold; margin: 30px 0; white-space: pre-wrap; line-height: 1.5;"></p>
-        <div id="finalRankingBox" style="display:none; text-align:left; background:rgba(0,0,0,0.05); padding:15px; border-radius:10px; margin-bottom:20px;"></div>
+        <div id="finalRankingBox" style="display:none; text-align:left; background:var(--input-bg); padding:15px; border-radius:var(--radius-sm); border: 2px solid var(--border-color); margin-bottom:20px;"></div>
         <button id="nextRoundBtn" onclick="closeModal('resultModal')" class="action-btn" style="display:none; width:100%;">확인 (다음 라운드 대기)</button>
         <div id="hostEndMenu" style="display:none; gap:10px;">
-            <button onclick="continueGame()" class="action-btn" style="display:block; flex:1; background:#32CD32; color:white;">계속하기</button>
-            <button onclick="quitGame()" class="action-btn" style="display:block; flex:1; background:#888; color:white;">그만하기</button>
+            <button onclick="continueGame()" class="action-btn btn-green" style="display:block; flex:1;">계속하기</button>
+            <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; flex:1;">그만하기</button>
         </div>
         <div id="guestEndMenu" style="display:none; gap:10px;">
-            <button onclick="quitGame()" class="action-btn" style="display:block; width:100%; background:#888; color:white;">그만하기 (나가기)</button>
+            <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; width:100%;">그만하기 (나가기)</button>
         </div>
     </div>
 </div>
 
 <script>
+    function updateToggleButtons() {
+        var isDark = document.documentElement.classList.contains('dark-mode');
+        var modeIcon = document.getElementById('modeIcon');
+        var modeText = document.getElementById('modeText');
+        if(modeIcon && modeText) {
+            modeIcon.innerText = isDark ? '☀️' : '🌙';
+            modeText.innerText = isDark ? '라이트' : '다크';
+        }
+    }
+
+    function toggleDisplayMode() {
+        if (document.documentElement.classList.contains('dark-mode')) {
+            document.documentElement.classList.remove('dark-mode');
+            localStorage.setItem('mangoLiarDisplayMode', 'light');
+        } else {
+            document.documentElement.classList.add('dark-mode');
+            localStorage.setItem('mangoLiarDisplayMode', 'dark');
+        }
+        updateToggleButtons();
+    }
+
+    function toggleExcelMode() {
+        if (document.documentElement.classList.contains('excel-mode')) {
+            document.documentElement.classList.remove('excel-mode');
+            localStorage.setItem('mangoLiarExcelMode', 'false');
+        } else {
+            document.documentElement.classList.add('excel-mode');
+            localStorage.setItem('mangoLiarExcelMode', 'true');
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        updateToggleButtons();
+    });
+
     var stompClient = null;
     var roomId = '[[${roomId}]]';
     var myId = Math.random().toString(36).substr(2, 9);
@@ -303,43 +388,6 @@
     var isSpectator = false;
     var countdownInterval;
 
-    // ==========================================
-    // 🎨 [신규 추가] 상시 테마 유지 및 제어 로직
-    // ==========================================
-    function applySavedMode() {
-        var savedMode = localStorage.getItem('mangoLiarDisplayMode');
-        var savedExcel = localStorage.getItem('mangoLiarExcelMode');
-        if (savedMode === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('modeIcon').innerText = '☀️';
-            document.getElementById('modeText').innerText = '라이트';
-        } else {
-            document.body.classList.remove('dark-mode');
-            document.getElementById('modeIcon').innerText = '🌙';
-            document.getElementById('modeText').innerText = '다크';
-        }
-        if (savedExcel === 'true') document.body.classList.add('excel-mode');
-        else document.body.classList.remove('excel-mode');
-    }
-
-    function toggleDisplayMode() {
-        if (document.body.classList.contains('dark-mode')) localStorage.setItem('mangoLiarDisplayMode', 'light');
-        else localStorage.setItem('mangoLiarDisplayMode', 'dark');
-        applySavedMode();
-    }
-
-    function toggleExcelMode() {
-        if (document.body.classList.contains('excel-mode')) localStorage.setItem('mangoLiarExcelMode', 'false');
-        else localStorage.setItem('mangoLiarExcelMode', 'true');
-        applySavedMode();
-    }
-
-    // 문서 로드 즉시 로컬스토리지의 테마 세팅 적용
-    window.addEventListener('DOMContentLoaded', function() {
-        applySavedMode();
-    });
-    // ==========================================
-
     document.getElementById('myNameDisplay').innerText = myFullName;
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -352,7 +400,7 @@
         countdownInterval = setInterval(function() {
             left--;
             if(left <= 0) { clearInterval(countdownInterval); if(el) el.innerText = onExpireText; }
-            else { if(el) { el.innerText = prefix + left + "초"; if(left <= 5) el.style.color = 'red'; } }
+            else { if(el) { el.innerText = prefix + left + "초"; if(left <= 5) el.style.color = 'var(--h-red)'; } }
         }, 1000);
     }
 
@@ -374,12 +422,14 @@
         document.getElementById('hostPublicVoteBtn').style.display = 'none';
         document.getElementById('spectatorJoinBtn').style.display = 'none';
 
+        var baboContainer = document.getElementById('baboModeContainer');
+        if(baboContainer) baboContainer.style.display = 'none';
+
         if(isSpectator && !isPlaying) {
             document.getElementById('spectatorJoinBtn').style.display = 'block';
         }
         if(myId === hostId && !isSpectator && !isPlaying) {
             document.getElementById('startBtn').style.display = 'block';
-            var baboContainer = document.getElementById('baboModeContainer');
             if(baboContainer) baboContainer.style.display = 'block';
         }
     }
@@ -405,19 +455,19 @@
                 var chatArea = document.getElementById('chatArea');
 
                 if (data.type === 'SYSTEM') {
-                    chatArea.innerHTML += "<div class='sys-msg'>" + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--panel-border);'>" + data.content + "</div>";
                 } else if (data.type === 'CHAT') {
                     chatArea.innerHTML += "<div class='chat-msg'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
 
                 } else if (data.type === 'EXPLANATION') {
                     var bubble = document.getElementById('bubble_' + data.sender);
                     if(bubble) { bubble.innerText = data.content; bubble.style.display = 'block'; }
-                    chatArea.innerHTML += "<div class='chat-msg' style='color:#32CD32'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-green);'><span class='sender-name'>" + data.sender + ":</span> " + data.content + "</div>";
 
                 } else if (data.type === 'DEFENSE_MSG') {
                     var bubble = document.getElementById('bubble_' + data.sender);
                     if(bubble) { bubble.innerText = data.content; bubble.style.display = 'block'; }
-                    chatArea.innerHTML += "<div class='chat-msg' style='color:#FF8C00; font-size:18px;'><strong>🚨 [최후변론] " + data.sender + ":</strong> " + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='chat-msg' style='color: var(--h-orange); font-size:18px;'><strong>🚨 [최후변론] " + data.sender + ":</strong> " + data.content + "</div>";
 
                 } else if (data.type === 'PLAYER_LIST') {
                     hostId = data.hostId;
@@ -481,8 +531,8 @@
                     if(baboContainer) baboContainer.style.display = 'none';
 
                     if(!isSpectator) {
-                        document.getElementById('timerBoard').style.color = '#FF8C00';
-                        chatArea.innerHTML += "<div class='sys-msg' style='color:#FF4500'>" + data.content + "</div>";
+                        document.getElementById('timerBoard').style.color = 'var(--h-orange)';
+                        chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-red);'>" + data.content + "</div>";
                         startLocalTimer(5, 'timerBoard', "단어 확인 시간: ", "게임 시작!");
                     }
                 } else if (data.type === 'TURN_START') {
@@ -491,9 +541,9 @@
                     var currentAvatar = document.getElementById('avatar_' + data.turnPlayerName);
                     if(currentAvatar) currentAvatar.classList.add('active-turn');
 
-                    chatArea.innerHTML += "<div class='sys-msg' style='color:#228B22'>▶ " + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-green);'>▶ " + data.content + "</div>";
                     if(!isSpectator) {
-                        document.getElementById('timerBoard').style.color = '#FF8C00';
+                        document.getElementById('timerBoard').style.color = 'var(--h-orange)';
                         startLocalTimer(30, 'timerBoard', "🗣️ ["+ data.turnPlayerName +"] 설명 남은 시간: ", "시간 초과! 턴 스킵");
                         if(data.turnPlayerName === myFullName) {
                             document.getElementById('explainInput').value = '';
@@ -502,10 +552,12 @@
                             document.getElementById('explainInput').focus();
                         }
                     }
+
                 } else if (data.type === 'WAITING_FOR_VOTE') {
                     clearInterval(countdownInterval);
+                    document.getElementById('timerBoard').style.color = 'var(--h-orange)';
                     document.getElementById('timerBoard').innerText = "👀 모든 설명 종료! 충분히 대화하고 추리하세요.";
-                    chatArea.innerHTML += "<div class='sys-msg' style='color:#FF8C00'>" + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-orange);'>" + data.content + "</div>";
                     if (myId === hostId && !isSpectator) {
                         document.getElementById('hostVoteBtn').style.display = 'block';
                     }
@@ -513,14 +565,14 @@
                 } else if (data.type === 'VOTE_START') {
                     closeModal('explainModal');
                     document.getElementById('hostVoteBtn').style.display = 'none';
-                    chatArea.innerHTML += "<div class='sys-msg' style='color:#FF0000'>🚨 " + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-red);'>🚨 " + data.content + "</div>";
 
                     if(!isSpectator) {
                         var voteList = document.getElementById('voteRadioList');
                         voteList.innerHTML = '';
                         currentPlayers.forEach(function(p) {
                             if(p !== myFullName) {
-                                voteList.innerHTML += `<label style="display:block; margin: 10px 0; font-size: 20px; cursor: pointer; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 10px; border: 1px solid var(--border-color);"><input type="radio" name="voteTarget" value="${p}"> ${p}</label>`;
+                                voteList.innerHTML += `<label style="display:block; margin: 10px 0; font-size: 20px; cursor: pointer; padding: 10px; background: var(--input-bg); border-radius: var(--radius-sm); border: 1px solid var(--border-color);"><input type="radio" name="voteTarget" value="${p}"> ${p}</label>`;
                             }
                         });
                         document.getElementById('voteModal').style.display = 'flex';
@@ -554,7 +606,7 @@
                     clearInterval(countdownInterval);
                     closeModal('defenseModal');
                     document.getElementById('timerBoard').innerText = "👀 최후 변론 종료! 추리 완료 후 방장이 찬반 투표를 개시하세요.";
-                    chatArea.innerHTML += "<div class='sys-msg' style='color:#FF8C00'>" + data.content + "</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-orange);'>" + data.content + "</div>";
                     if (myId === hostId && !isSpectator) {
                         document.getElementById('hostPublicVoteBtn').style.display = 'block';
                     }
@@ -638,7 +690,7 @@
                     document.getElementById('resultContent').innerText = data.content;
 
                     var sorted = updateScoreBoard(data.scores);
-                    var rankHtml = '<h3 style="margin-top:0;">🎖️ 최종 순위</h3>';
+                    var rankHtml = '<h3 style="margin-top:0; color:var(--panel-border);">🎖️ 최종 순위</h3>';
                     sorted.forEach(function(item, idx) {
                         var medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : ''));
                         rankHtml += '<p style="margin:5px 0; font-size:18px;">' + (idx+1) + '위: ' + medal + ' ' + item.name + ' (' + item.score + '점)</p>';
@@ -663,7 +715,7 @@
                     document.getElementById('timerBoard').innerText = "⏳ 새로운 게임 대기 중...";
                     document.getElementById('roundDisplay').innerText = data.currentRound + "/" + data.totalRounds + " 라운드";
                     if(data.scores) updateScoreBoard(data.scores);
-                    chatArea.innerHTML += "<div class='sys-msg' style='color:#32CD32'>♻️ 방장이 게임을 초기화했습니다.</div>";
+                    chatArea.innerHTML += "<div class='sys-msg' style='color: var(--h-green);'>♻️ 방장이 게임을 초기화했습니다.</div>";
                 }
 
                 chatArea.scrollTop = chatArea.scrollHeight;
@@ -677,12 +729,19 @@
                     document.getElementById('gameWord').innerText = data.word;
                     document.getElementById('wordModal').style.display = 'flex';
                 }
+                // [신규 가드] 비밀번호 해독 실패 에러 처리 판정 시 강제 퇴장 분기점 매립
+                else if (data.content === 'ERROR_PASSWORD') {
+                    alert("🔒 비밀번호가 일치하지 않습니다!");
+                    window.location.href = '/';
+                }
             });
 
             var parsedRounds = parseInt(initRounds);
             if(isNaN(parsedRounds) || parsedRounds === 0) { parsedRounds = 3; }
             var customTitle = sessionStorage.getItem('liarGameRoomTitle') || "";
-            stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'totalRounds': parsedRounds, 'roomTitle': customTitle, 'type': 'JOIN' }));
+            // 패스워드 로드해서 소켓 조인 바디에 포워딩
+            var customPassword = sessionStorage.getItem('liarGameRoomPassword') || "";
+            stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'totalRounds': parsedRounds, 'roomTitle': customTitle, 'roomPassword': customPassword, 'type': 'JOIN' }));
         });
     }
 
@@ -700,12 +759,7 @@
     }
 
     function hostStartVote() { document.getElementById('hostVoteBtn').style.display = 'none'; stompClient.send("/app/game.startVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
-
-    function hostStartPublicVote() {
-        document.getElementById('hostPublicVoteBtn').style.display = 'none';
-        stompClient.send("/app/game.startPublicVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId }));
-    }
-
+    function hostStartPublicVote() { document.getElementById('hostPublicVoteBtn').style.display = 'none'; stompClient.send("/app/game.startPublicVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
     function spectatorJoin() { stompClient.send("/app/game.spectatorJoin", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
 
     function submitExplanation() {
