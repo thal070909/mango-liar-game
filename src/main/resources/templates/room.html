@@ -661,6 +661,7 @@
                         startLocalTimer(30, 'timerBoard', "🤔 라이어가 단어 유추 중: ", "종료!");
                     }
 
+
                 } else if (data.type === 'ROUND_END') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
@@ -672,6 +673,11 @@
                         document.getElementById('timerBoard').innerText = "⏳ 라운드 결과 발표";
                         document.getElementById('resultTitle').innerText = "라운드 종료";
                         document.getElementById('resultContent').innerText = data.content;
+
+                        // 🔥 제가 실수로 지워버렸던 바로 그 버튼들을 다시 살려냈습니다!! 🔥
+                        document.getElementById('nextRoundBtn').style.display = 'block';
+                        document.getElementById('finalRankingBox').style.display = 'none';
+
                         document.getElementById('hostEndMenu').style.display = 'none';
                         document.getElementById('guestEndMenu').style.display = 'none';
                         document.getElementById('resultModal').style.display = 'flex';
