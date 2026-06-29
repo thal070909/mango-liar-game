@@ -6,13 +6,13 @@ public class GameSession {
     private String roomId;
     private String hostId;
     private String roomTitle;
-    private String roomPassword; // 비밀방 비밀번호 필드
+    private String roomPassword;
     private Map<String, String> players = new LinkedHashMap<>();
     private Map<String, String> spectators = new LinkedHashMap<>();
 
     private String liarId;
     private String word;
-    private boolean isPlaying = false; // 실제 선언된 변수 이름
+    private boolean isPlaying = false;
     private boolean baboMode = false;
 
     private Map<String, String> votes = new HashMap<>();
@@ -25,6 +25,11 @@ public class GameSession {
     private String accusedFullName;
     private Map<String, String> publicVotes = new HashMap<>();
     private Map<String, Double> scores = new HashMap<>();
+
+    // [신규 추가] 턴수 제어 및 힌트 보관소
+    private int maxExplanationTurns = 1;
+    private int currentExplanationRound = 1;
+    private Map<String, String> explanations = new HashMap<>();
 
     public GameSession(String roomId) { this.roomId = roomId; }
 
@@ -43,7 +48,6 @@ public class GameSession {
     public String getWord() { return word; }
     public void setWord(String word) { this.word = word; }
 
-    // [수정 완료] isPlaying 변수에 정상적으로 값을 할당하도록 수정했습니다!
     public boolean isPlaying() { return isPlaying; }
     public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
 
@@ -65,6 +69,12 @@ public class GameSession {
     public Map<String, String> getPublicVotes() { return publicVotes; }
     public Map<String, Double> getScores() { return scores; }
 
+    public int getMaxExplanationTurns() { return maxExplanationTurns; }
+    public void setMaxExplanationTurns(int maxExplanationTurns) { this.maxExplanationTurns = maxExplanationTurns; }
+    public int getCurrentExplanationRound() { return currentExplanationRound; }
+    public void setCurrentExplanationRound(int currentExplanationRound) { this.currentExplanationRound = currentExplanationRound; }
+    public Map<String, String> getExplanations() { return explanations; }
+
     public void cancelTimer() {
         if (this.gameTimer != null) {
             this.gameTimer.cancel();
@@ -72,15 +82,4 @@ public class GameSession {
         }
     }
     public void setGameTimer(Timer timer) { this.gameTimer = timer; }
-
-    private int maxExplanationTurns = 1; // 기본값 1턴
-    private int currentExplanationRound = 1; // 현재 몇 회차 설명인지 기록
-    private Map<String, String> explanations = new HashMap<>(); // 방 내부 힌트 박제소
-
-    public int getMaxExplanationTurns() { return maxExplanationTurns; }
-    public void setMaxExplanationTurns(int maxExplanationTurns) { this.maxExplanationTurns = maxExplanationTurns; }
-    public int getCurrentExplanationRound() { return currentExplanationRound; }
-    public void setCurrentExplanationRound(int currentExplanationRound) { this.currentExplanationRound = currentExplanationRound; }
-    public Map<String, String> getExplanations() { return explanations; }
-
 }

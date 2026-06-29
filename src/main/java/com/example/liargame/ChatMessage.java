@@ -25,12 +25,15 @@ public class ChatMessage {
     private boolean baboMode;
     private String roomPassword;
 
-    // 👉 제가 실수로 빼먹었던 바로 그 두 줄입니다! 다시 복구했습니다.
     private Map<String, String> publicVotes;
     private Map<String, Double> scores;
 
     private List<String> playerList;
     private Map<String, String> spectatorList;
+
+    // [신규 추가] 턴수 및 힌트 저장용
+    private int maxExplanationTurns;
+    private Map<String, String> explanations;
 
     public MessageType getType() { return type; }
     public void setType(MessageType type) { this.type = type; }
@@ -76,11 +79,8 @@ public class ChatMessage {
     public Map<String, String> getSpectatorList() { return spectatorList; }
     public void setSpectatorList(Map<String, String> spectatorList) { this.spectatorList = spectatorList; }
 
-    // 👇 파일 맨 밑 닫히기 직전 위치에 이 코드들을 추가해 주세요.
-    private int maxExplanationTurns; // 최대 설명 턴 (1 또는 2)
-    private Map<String, String> explanations; // 실시간 힌트 저장용 맵
-
     public int getMaxExplanationTurns() { return maxExplanationTurns; }
     public void setMaxExplanationTurns(int maxExplanationTurns) { this.maxExplanationTurns = maxExplanationTurns; }
     public Map<String, String> getExplanations() { return explanations; }
-    public void setExplanations(Map<String, String> explanations) { this.explanations = explanations; }}
+    public void setExplanations(Map<String, String> explanations) { this.explanations = explanations; }
+}

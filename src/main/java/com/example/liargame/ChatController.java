@@ -20,7 +20,6 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
     private Map<String, GameSession> sessions = new HashMap<>();
 
-    // [업데이트] 방대한 카테고리별 대형 단어장 (총 700여 개 단어 완벽 수록)
     private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
         put("과일/야채", Arrays.asList(
                 "사과", "바나나", "파인애플", "복숭아", "수박", "망고", "딸기", "포도", "멜론", "참외",
@@ -125,6 +124,7 @@ public class ChatController {
                 "포레스트검프", "쇼생크탈출", "인생은아름다워", "글래디에이터2", "라따뚜이", "코코", "겨울왕국2", "주먹왕랄프", "몬스터주식회사", "업"
         ));
     }};
+
     @GetMapping("/api/rooms")
     @ResponseBody
     public List<Map<String, Object>> getActiveRooms() {
@@ -214,19 +214,17 @@ public class ChatController {
                         session.cancelTimer();
                         sessions.remove(roomId);
                     } else {
-                        // [신규] 방장이 나갔을 때 랜덤 방장 위임 시스템 적용
                         if (playerId.equals(session.getHostId())) {
                             List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
                             if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
+
                             if(!candidates.isEmpty()) {
                                 String newHostId = candidates.get(new Random().nextInt(candidates.size()));
                                 session.setHostId(newHostId);
-                                String newHostName = session.getPlayers().getOrDefault(newHostId, session.getSpectators().get(newHostId));
-
-                                ChatMessage hostMsg = new ChatMessage();
-                                hostMsg.setType(ChatMessage.MessageType.SYSTEM);
-                                hostMsg.setContent("👑 기존 방장이 퇴장하여 [" + newHostName + "] 님이 새로운 방장으로 임명되었습니다!");
-                                messagingTemplate.convertAndSend("/topic/room/" + roomId, hostMsg);
+                                ChatMessage hostNotice = new ChatMessage();
+                                hostNotice.setType(ChatMessage.MessageType.SYSTEM);
+                                hostNotice.setContent("👑 방장이 퇴장하여 랜덤으로 새로운 방장이 선출되었습니다!");
+                                messagingTemplate.convertAndSend("/topic/room/" + roomId, hostNotice);
                             }
                         }
                         sendPlayerListUpdate(session);
@@ -253,19 +251,17 @@ public class ChatController {
                 session.cancelTimer();
                 sessions.remove(msg.getRoomId());
             } else {
-                // [신규] 방장 나가기 버튼 클릭 시 랜덤 위임 적용
                 if (msg.getPlayerId().equals(session.getHostId())) {
                     List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
                     if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
+
                     if(!candidates.isEmpty()) {
                         String newHostId = candidates.get(new Random().nextInt(candidates.size()));
                         session.setHostId(newHostId);
-                        String newHostName = session.getPlayers().getOrDefault(newHostId, session.getSpectators().get(newHostId));
-
-                        ChatMessage hostMsg = new ChatMessage();
-                        hostMsg.setType(ChatMessage.MessageType.SYSTEM);
-                        hostMsg.setContent("👑 기존 방장이 퇴장하여 [" + newHostName + "] 님이 새로운 방장으로 임명되었습니다!");
-                        messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), hostMsg);
+                        ChatMessage hostNotice = new ChatMessage();
+                        hostNotice.setType(ChatMessage.MessageType.SYSTEM);
+                        hostNotice.setContent("👑 방장이 퇴장하여 랜덤으로 새로운 방장이 선출되었습니다!");
+                        messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), hostNotice);
                     }
                 }
                 sendPlayerListUpdate(session);
@@ -276,7 +272,6 @@ public class ChatController {
     @MessageMapping("/game.spectatorJoin")
     public void spectatorJoin(ChatMessage msg) {
         GameSession session = sessions.get(msg.getRoomId());
-        // [수정] 게임이 진행 중이거나(isPlaying) 라운드가 시작되었으면 참여 불가
         if (session != null && !session.isPlaying() && session.getCurrentRound() == 1 && session.getSpectators().containsKey(msg.getPlayerId())) {
             String sName = session.getSpectators().remove(msg.getPlayerId());
             session.getPlayers().put(msg.getPlayerId(), sName);
@@ -302,6 +297,8 @@ public class ChatController {
         listMsg.setScores(session.getScores());
         listMsg.setPlaying(session.isPlaying());
         listMsg.setRoomTitle(session.getRoomTitle());
+
+        // [버그 수정] 관전자 등 인원 변동 시 화면 갱신할 때 기존 힌트들을 함께 전송합니다.
         listMsg.setExplanations(session.getExplanations());
 
         messagingTemplate.convertAndSend("/topic/room/" + session.getRoomId(), listMsg);
@@ -319,6 +316,8 @@ public class ChatController {
         session.getVotes().clear();
         session.getPublicVotes().clear();
         session.setAccusedFullName(null);
+
+        session.setPlaying(true);
         session.setBaboMode(msg.isBaboMode());
         session.setMaxExplanationTurns(msg.getMaxExplanationTurns());
         session.setCurrentExplanationRound(1);
@@ -334,7 +333,6 @@ public class ChatController {
 
         session.setWord(selectedWord);
         session.setLiarId(liarId);
-        session.setPlaying(true);
 
         String liarWord = "???";
         if (session.isBaboMode() && words.size() > 1) {
@@ -379,11 +377,16 @@ public class ChatController {
     public void receiveExplanation(ChatMessage msg) {
         GameSession session = sessions.get(msg.getRoomId());
         if (session != null && session.isPlaying()) {
-            session.getExplanations().put(msg.getSender(), msg.getContent());
+
+            // 누적 힌트를 서버 메모리에 박제
+            String existingHint = session.getExplanations().getOrDefault(msg.getSender(), "");
+            String newHint = existingHint.isEmpty() ? msg.getContent() : existingHint + " / " + msg.getContent();
+            session.getExplanations().put(msg.getSender(), newHint);
+
             ChatMessage expMsg = new ChatMessage();
             expMsg.setType(ChatMessage.MessageType.EXPLANATION);
             expMsg.setSender(msg.getSender());
-            expMsg.setContent(msg.getContent());
+            expMsg.setContent(newHint); // 누적된 전체 힌트를 보냄
             messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), expMsg);
 
             session.cancelTimer();
@@ -408,19 +411,17 @@ public class ChatController {
         session.cancelTimer();
 
         if (session.getCurrentTurnIndex() >= session.getTurnOrder().size()) {
-            // 아직 설정한 최대 설명 턴(예: 2턴)에 도달하지 않았다면 한 바퀴 더 돌립니다.
             if (session.getCurrentExplanationRound() < session.getMaxExplanationTurns()) {
                 session.setCurrentExplanationRound(session.getCurrentExplanationRound() + 1);
-                session.setCurrentTurnIndex(0); // 턴 인덱스 초기화 (처음 사람부터 다시)
+                session.setCurrentTurnIndex(0);
 
                 ChatMessage nextRoundMsg = new ChatMessage();
                 nextRoundMsg.setType(ChatMessage.MessageType.SYSTEM);
-                nextRoundMsg.setContent("🔄 모든 플레이어의 " + (session.getCurrentExplanationRound() - 1) + "차 설명이 끝났습니다. [" + session.getCurrentExplanationRound() + "차 설명]을 시작합니다!");
+                nextRoundMsg.setContent("🔄 모든 인원의 " + (session.getCurrentExplanationRound() - 1) + "차 설명이 종료되었습니다. 이어서 [" + session.getCurrentExplanationRound() + "차 설명]을 시작합니다!");
                 messagingTemplate.convertAndSend("/topic/room/" + roomId, nextRoundMsg);
 
-                startNextTurn(roomId); // 2차 설명 회차로 즉시 재진입
+                startNextTurn(roomId);
             } else {
-                // 세팅한 턴수가 모두 끝나면 수동 투표 대기 상태로 진입합니다.
                 ChatMessage waitMsg = new ChatMessage();
                 waitMsg.setType(ChatMessage.MessageType.WAITING_FOR_VOTE);
                 waitMsg.setContent("👀 모든 설명 종료! 추리 완료 후 방장이 수동으로 투표를 시작하세요.");
@@ -436,7 +437,7 @@ public class ChatController {
         turnMsg.setType(ChatMessage.MessageType.TURN_START);
         turnMsg.setTurnPlayerId(currentTurnId);
         turnMsg.setTurnPlayerName(currentTurnName);
-        turnMsg.setContent("🗣️ [" + currentTurnName + "] 님의 설명 차례!");
+        turnMsg.setContent("🗣️ [" + currentTurnName + "] 님의 " + session.getCurrentExplanationRound() + "차 설명 차례!");
         messagingTemplate.convertAndSend("/topic/room/" + roomId, turnMsg);
 
         Timer turnTimer = new Timer();
