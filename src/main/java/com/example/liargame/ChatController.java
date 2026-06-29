@@ -19,8 +19,6 @@ public class ChatController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
-    // 💡 [버그 완벽 수정] 게임방 목록을 담는 가장 큰 상자를 무적의 ConcurrentHashMap으로 변경했습니다! (서버 폭파 방지)
     private Map<String, GameSession> sessions = new ConcurrentHashMap<>();
 
     private final Map<String, List<String>> gameDictionary = new HashMap<>() {{
@@ -210,7 +208,7 @@ public class ChatController {
 
                     ChatMessage systemMsg = new ChatMessage();
                     systemMsg.setType(ChatMessage.MessageType.SYSTEM);
-                    systemMsg.setContent(sender + "님이 창을 닫아 퇴장하셨습니다. 🚪");
+                    systemMsg.setContent(sender + "님이 튕겨서 퇴장 처리되었습니다. 🚪");
                     messagingTemplate.convertAndSend("/topic/room/" + roomId, systemMsg);
 
                     if (session.getPlayers().isEmpty() && session.getSpectators().isEmpty()) {
@@ -220,7 +218,6 @@ public class ChatController {
                         if (playerId.equals(session.getHostId())) {
                             List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
                             if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
-
                             if(!candidates.isEmpty()) {
                                 String newHostId = candidates.get(new Random().nextInt(candidates.size()));
                                 session.setHostId(newHostId);
@@ -231,6 +228,8 @@ public class ChatController {
                             }
                         }
                         sendPlayerListUpdate(session);
+                        // 🔥 중간 탈주 시 타이머와 투표 딜레이를 즉시 해결하는 마법의 메서드 호출
+                        handlePlayerLeaveDuringGame(roomId, playerId);
                     }
                 }
             }
@@ -257,7 +256,6 @@ public class ChatController {
                 if (msg.getPlayerId().equals(session.getHostId())) {
                     List<String> candidates = new ArrayList<>(session.getPlayers().keySet());
                     if(candidates.isEmpty()) candidates.addAll(session.getSpectators().keySet());
-
                     if(!candidates.isEmpty()) {
                         String newHostId = candidates.get(new Random().nextInt(candidates.size()));
                         session.setHostId(newHostId);
@@ -268,7 +266,35 @@ public class ChatController {
                     }
                 }
                 sendPlayerListUpdate(session);
+                // 🔥 중간 탈주 시 타이머와 투표 딜레이를 즉시 해결하는 마법의 메서드 호출
+                handlePlayerLeaveDuringGame(msg.getRoomId(), msg.getPlayerId());
             }
+        }
+    }
+
+    // 💡 [핵심 방어막] 중간에 탈주한 유저 때문에 게임이 지연되는 것을 원천 차단합니다.
+    private void handlePlayerLeaveDuringGame(String roomId, String playerId) {
+        GameSession session = sessions.get(roomId);
+        if (session == null || !session.isPlaying()) return;
+
+        // 1. 현재 설명 중인 사람이 탈주했다면 즉시 다음 턴으로 스킵
+        if (session.getTurnOrder() != null && session.getCurrentTurnIndex() < session.getTurnOrder().size()) {
+            String currentTurnId = session.getTurnOrder().get(session.getCurrentTurnIndex());
+            if (currentTurnId.equals(playerId)) {
+                session.cancelTimer();
+                session.setCurrentTurnIndex(session.getCurrentTurnIndex() + 1);
+                startNextTurn(roomId);
+                return;
+            }
+        }
+
+        // 2. 투표 단계에서 탈주자 때문에 모두가 기다리고 있다면 남은 인원만으로 즉시 강제 집계
+        if (!session.getVotes().isEmpty() && session.getVotes().size() >= session.getPlayers().size()) {
+            session.cancelTimer();
+            checkInitialVoteResult(roomId);
+        } else if (!session.getPublicVotes().isEmpty() && session.getPublicVotes().size() >= Math.max(1, session.getPlayers().size() - 1)) {
+            session.cancelTimer();
+            processPublicVoteResult(roomId);
         }
     }
 
@@ -433,6 +459,13 @@ public class ChatController {
         String currentTurnId = session.getTurnOrder().get(session.getCurrentTurnIndex());
         String currentTurnName = session.getPlayers().get(currentTurnId);
 
+        // 💡 [버그 완벽 차단] 내 순서가 왔는데 내가 이미 방을 나간 상태(null)라면? -> 즉시 다음 사람으로 스킵!
+        if (currentTurnName == null) {
+            session.setCurrentTurnIndex(session.getCurrentTurnIndex() + 1);
+            startNextTurn(roomId);
+            return;
+        }
+
         ChatMessage turnMsg = new ChatMessage();
         turnMsg.setType(ChatMessage.MessageType.TURN_START);
         turnMsg.setTurnPlayerId(currentTurnId);
@@ -475,7 +508,7 @@ public class ChatController {
         if (session == null || !session.isPlaying()) return;
 
         session.getVotes().put(msg.getPlayerId(), msg.getContent());
-        if (session.getVotes().size() == session.getPlayers().size()) {
+        if (session.getVotes().size() >= session.getPlayers().size()) {
             session.cancelTimer();
             checkInitialVoteResult(msg.getRoomId());
         }
@@ -494,9 +527,13 @@ public class ChatController {
             else if (entry.getValue() == maxVotes) { tie = true; }
         }
 
+        // 라이어가 탈주했는지 이름 체크
+        String liarFullName = session.getPlayers().get(session.getLiarId());
+        if (liarFullName == null) liarFullName = "(탈주한 플레이어)";
+
         if (session.getVotes().isEmpty() || tie) {
             calculateLiarWinScore(session, 1.0);
-            endRound(roomId, "⚖️ 투표 동률! 용의자를 가리지 못해 라이어가 무사히 생존했습니다.\n(진짜 라이어: " + session.getPlayers().get(session.getLiarId()) + ")\n\n😈 라이어 승리! (+1점)");
+            endRound(roomId, "⚖️ 투표 동률! 용의자를 가리지 못해 라이어가 무사히 생존했습니다.\n(진짜 라이어: " + liarFullName + ")\n\n😈 라이어 승리! (+1점)");
             return;
         }
 
@@ -602,7 +639,7 @@ public class ChatController {
         updateMsg.setContent(unvotedStr);
         messagingTemplate.convertAndSend("/topic/room/" + msg.getRoomId(), updateMsg);
 
-        if (session.getPublicVotes().size() >= session.getPlayers().size() - 1) {
+        if (session.getPublicVotes().size() >= Math.max(1, session.getPlayers().size() - 1)) {
             session.cancelTimer();
             processPublicVoteResult(msg.getRoomId());
         }
@@ -618,6 +655,7 @@ public class ChatController {
         }
 
         String liarFullName = session.getPlayers().get(session.getLiarId());
+        if (liarFullName == null) liarFullName = "(탈주한 플레이어)";
 
         if (killCount > saveCount) {
             if (session.getAccusedFullName().equals(liarFullName)) {
@@ -664,6 +702,7 @@ public class ChatController {
     private void calculateCitizenWinScore(GameSession session) {
         String liarId = session.getLiarId();
         String liarName = session.getPlayers().get(liarId);
+        if (liarName == null) liarName = "(탈주한 플레이어)";
 
         for (Map.Entry<String, String> entry : session.getPlayers().entrySet()) {
             String pId = entry.getKey();
@@ -683,7 +722,9 @@ public class ChatController {
 
     private void calculateLiarWinScore(GameSession session, double points) {
         String liarName = session.getPlayers().get(session.getLiarId());
-        session.getScores().put(liarName, session.getScores().getOrDefault(liarName, 0.0) + points);
+        if (liarName != null) {
+            session.getScores().put(liarName, session.getScores().getOrDefault(liarName, 0.0) + points);
+        }
     }
 
     private void endRound(String roomId, String resultMessage) {
