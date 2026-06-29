@@ -119,7 +119,6 @@
         .leave-btn { background: var(--h-red); color: white; border: none; padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; }
         .room-toggle-btn { background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-color); padding: 8px 14px; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
 
-        /* [핵심 방어막] 모달창의 z-index와 배경색을 더 강력하게 고정 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
         .modal-box { background: var(--container-bg); color: var(--text-color); padding: 40px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--modal-shadow); border: 4px solid var(--border-color); min-width: 350px; z-index: 10000; }
         html.excel-mode .modal-box { border-width: 2px; }
@@ -292,6 +291,8 @@
         <p id="resultContent" style="font-size: 20px; font-weight: bold; margin: 30px 0; white-space: pre-wrap; line-height: 1.5;"></p>
         <div id="finalRankingBox" style="display:none; text-align:left; background:var(--input-bg); padding:15px; border-radius:var(--radius-sm); border: 2px solid var(--border-color); margin-bottom:20px;"></div>
 
+        <button id="nextRoundBtn" onclick="closeModal('resultModal')" class="action-btn" style="display:none; width:100%;">확인 (다음 라운드 대기)</button>
+
         <div id="hostEndMenu" style="display:none; gap:10px;">
             <button onclick="continueGame()" class="action-btn btn-green" style="display:block; flex:1;">계속하기</button>
             <button onclick="quitGame()" class="action-btn btn-gray" style="display:block; flex:1;">그만하기</button>
@@ -363,7 +364,6 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // 🔥 [핵심 방어막] 화면에 떠 있는 모든 팝업을 무조건 다 닫아버립니다. (겹침 및 데드락 방지)
     function closeAllGameModals() {
         closeModal('explainModal');
         closeModal('wordModal');
@@ -552,7 +552,6 @@
                         }
                     }
 
-                    // 🔥 [강력 방어] 게임의 국면이 바뀔 때 무조건 closeAllGameModals() 호출
                 } else if (data.type === 'WAITING_FOR_VOTE') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
@@ -663,6 +662,7 @@
                         startLocalTimer(30, 'timerBoard', "🤔 라이어가 단어 유추 중: ", "종료!");
                     }
 
+                    // 💡 [버그 완전 해결] 일반 라운드 종료 시에는 리셋 메뉴를 띄우지 않고 팝업만 닫는 "확인" 버튼만 활성화합니다.
                 } else if (data.type === 'ROUND_END') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
@@ -679,16 +679,11 @@
                         document.getElementById('guestEndMenu').style.display = 'none';
                         document.getElementById('finalRankingBox').style.display = 'none';
 
-                        // 다시 부활한 게스트/방장 계속하기 버튼
-                        if(myId === hostId && !isSpectator) {
-                            document.getElementById('hostEndMenu').style.display = 'flex';
-                        } else {
-                            document.getElementById('guestEndMenu').style.display = 'flex';
-                        }
-
+                        document.getElementById('nextRoundBtn').style.display = 'block'; // 팝업 닫는 확인 버튼만 활성화
                         document.getElementById('resultModal').style.display = 'flex';
                     }
 
+                    // 💡 [버그 완전 해결] 모든 매치 라운드(예: 5라운드)가 완벽하게 다 끝났을 때만 리셋 계속하기 메뉴를 개방합니다.
                 } else if (data.type === 'GAME_OVER_ALL') {
                     clearInterval(countdownInterval);
                     closeAllGameModals();
@@ -706,6 +701,7 @@
                     document.getElementById('finalRankingBox').innerHTML = rankHtml;
                     document.getElementById('finalRankingBox').style.display = 'block';
 
+                    document.getElementById('nextRoundBtn').style.display = 'none';
                     if(myId === hostId && !isSpectator) {
                         document.getElementById('hostEndMenu').style.display = 'flex';
                         document.getElementById('guestEndMenu').style.display = 'none';
@@ -746,83 +742,4 @@
             if(isNaN(parsedRounds) || parsedRounds === 0) { parsedRounds = 3; }
             var customTitle = sessionStorage.getItem('liarGameRoomTitle') || "";
             var customPassword = sessionStorage.getItem('liarGameRoomPassword') || "";
-            stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'totalRounds': parsedRounds, 'roomTitle': customTitle, 'roomPassword': customPassword, 'type': 'JOIN' }));
-        });
-    }
-
-    function sendMessage() {
-        var input = document.getElementById('messageInput');
-        if(input.value.trim() !== "") {
-            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': input.value, 'type': 'CHAT' }));
-            input.value = '';
-        }
-    }
-
-    function startGame() {
-        var isBabo = document.getElementById('baboModeCheck') ? document.getElementById('baboModeCheck').checked : false;
-        var maxTurns = document.getElementById('maxTurnsSelect') ? parseInt(document.getElementById('maxTurnsSelect').value) : 1;
-
-        stompClient.send("/app/game.start", {}, JSON.stringify({
-            'roomId': roomId,
-            'playerId': myId,
-            'baboMode': isBabo,
-            'maxExplanationTurns': maxTurns
-        }));
-    }
-
-    function hostStartVote() { document.getElementById('hostVoteBtn').style.display = 'none'; stompClient.send("/app/game.startVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
-    function hostStartPublicVote() { document.getElementById('hostPublicVoteBtn').style.display = 'none'; stompClient.send("/app/game.startPublicVotePhase", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
-
-    function spectatorJoin() {
-        if (isGamePlaying || globalCurrentRound > 1) {
-            alert("해당 모든 라운드가 종료된 후에 참여할 수 있습니다.");
-            return;
-        }
-        stompClient.send("/app/game.spectatorJoin", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId }));
-    }
-
-    function waitNextGame() {
-        closeModal('resultModal');
-        document.getElementById('timerBoard').innerText = "⏳ 방장의 재시작을 기다리는 중...";
-    }
-
-    function submitExplanation() {
-        var explain = document.getElementById('explainInput').value.trim();
-        if(!explain) { alert("단어를 설명해주세요!"); return; }
-        stompClient.send("/app/game.explain", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': explain }));
-        closeModal('explainModal');
-    }
-
-    function submitDefense() {
-        var defenseTxt = document.getElementById('defenseInput').value.trim();
-        if(!defenseTxt) { alert("변론을 입력해주세요!"); return; }
-        stompClient.send("/app/game.defend", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': defenseTxt }));
-        closeModal('defenseModal');
-    }
-
-    function submitVote() {
-        var target = document.querySelector('input[name="voteTarget"]:checked');
-        if(!target) { alert("의심되는 사람을 지목해주세요!"); return; }
-        stompClient.send("/app/game.vote", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'content': target.value }));
-        closeModal('voteModal');
-        document.getElementById('timerBoard').innerText = "투표 완료. 결과 대기 중...";
-    }
-
-    function skipDefense() { document.getElementById('defenseSkipBtn').style.display = 'none'; stompClient.send("/app/game.skipDefense", {}, JSON.stringify({ 'roomId': roomId })); }
-    function submitPublicVote(voteValue) {
-        document.getElementById('btnKill').style.display = 'none';
-        document.getElementById('btnSave').style.display = 'none';
-        stompClient.send("/app/game.publicVote", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender': myFullName, 'content': voteValue }));
-    }
-    function submitLiarGuess() {
-        var guess = document.getElementById('liarWordInput').value.trim();
-        if(!guess) { alert("단어를 입력해주세요!"); return; }
-        stompClient.send("/app/game.liarGuess", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'content': guess }));
-    }
-    function continueGame() { stompClient.send("/app/game.continue", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId })); }
-    function quitGame() { window.location.href = '/'; }
-
-    connect();
-</script>
-</body>
-</html>
+            stompClient.send("/app/chat.join", {}, JSON.stringify({ 'roomId': roomId, 'playerId': myId, 'sender
