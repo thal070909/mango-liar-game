@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>🥭 망고의 라이어 게임 🥭</title>
-    <script th:inline="javascript">
+    <!-- 👇 th:inline을 지우고 깔끔하게 복구 -->
+    <script>
         (function() {
-            var mode = localStorage.getItem('isDark');
-            var excel = localStorage.getItem('isExcel');
-            if (mode === 'true') document.documentElement.classList.add('dark-mode');
-            if (excel === 'true') document.documentElement.classList.add('excel-mode');
+            if(localStorage.getItem('isDark') === 'true') document.documentElement.classList.add('dark-mode');
+            if(localStorage.getItem('isExcel') === 'true') document.documentElement.classList.add('excel-mode');
         })();
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
