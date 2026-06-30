@@ -18,9 +18,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // [핵심 수정] ngrok 외부 접속 시 도메인이 달라져서 통신이 차단되는 403 에러를 해결합니다.
         registry.addEndpoint("/ws-liar")
                 .setAllowedOriginPatterns("*")
+                .addInterceptors(new IpHandshakeInterceptor()) // 🔥 이 한 줄을 꼭 추가해 주세요!
                 .withSockJS();
     }
 }

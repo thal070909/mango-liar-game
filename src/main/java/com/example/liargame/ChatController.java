@@ -186,6 +186,9 @@ public class ChatController {
             session.getPlayers().put(msg.getPlayerId(), msg.getSender());
             session.getScores().putIfAbsent(msg.getSender(), 0.0);
         }
+        String userIp = (String) headerAccessor.getSessionAttributes().get("ipAddress");
+        System.out.println("🚨 [접속 로그] 닉네임: " + msg.getSender() + " | IP 주소: " + userIp + " | 방 코드: " + msg.getRoomId());
+
         sendPlayerListUpdate(session);
     }
 
